@@ -1,0 +1,42 @@
+name: CICD - Test Code
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          pip install poetry==1.8.5
+
+      - name: Run Unit Tests
+        run: |
+          poetry install
+          poetry run pytest
+
+      - name: Test OSSPREY GH Action
+        uses: ./  # Reference your local action in the repo
+        with:
+          package: "test/simple_math"
+          requirements: true
+          github_comments: false
+          verbose: true
+        env:
+          API_KEY: ${{ secrets.OSSPREY_API_KEY }}

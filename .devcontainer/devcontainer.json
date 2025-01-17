@@ -1,0 +1,22 @@
+{
+    "name": "Ossprey",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "njpwerner.autodocstring",
+                "ms-python.flake8",
+                "ms-python.isort",
+                "ms-python.black-formatter",
+                "python-poetry.vscode-py-poetry",
+                "CoenraadS.bracket-pair-colorizer-2",
+                "aaron-bond.better-comments",
+                "github.vscode-github-actions",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "postStartCommand": "bash .devcontainer/startup.sh"
+}

@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "scan"
+version = "0.1.0"
+description = "Script to scan a given folder, create an SBOM and then submit to for malware scanning"
+authors = ["dreadn0ught"]
+license = "GPL-3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+cyclonedx-bom = "^5.1.1"  
+cyclonedx-python-lib = {extras = ["json-validation"], version = "^8.4.0"}
+requests = "^2.32.3"
+pygithub = "^2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-cov = "^5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
