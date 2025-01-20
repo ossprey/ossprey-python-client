@@ -11,7 +11,7 @@ from scan.sbom import dict_to_sbom
 
 logger = logging.getLogger(__name__)
 
-def print_gh_action_errors(sbom_dict, package_path, post_to_github=False):
+def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> bool:
     """
     Print the errors in a format that can be consumed by GitHub Actions
     """
@@ -21,12 +21,9 @@ def print_gh_action_errors(sbom_dict, package_path, post_to_github=False):
 
     sbom = dict_to_sbom(sbom_dict)
 
-    if sbom.vulnerabilities is None or len(sbom.vulnerabilities) == 0:
-        print("No vulnerabilities found")
-        print("::set-output name=has_vulnerabilities::false")
-        return True
-    else:
-        print("::set-output name=has_vulnerabilities::true")
+    has_vulnerabilities = sbom.vulnerabilities is not None and len(sbom.vulnerabilities) > 0
+
+    if has_vulnerabilities:
         for vuln in sbom.vulnerabilities:
             properties = properties_to_dict(vuln.properties)
             component = properties["component"]
@@ -35,14 +32,17 @@ def print_gh_action_errors(sbom_dict, package_path, post_to_github=False):
             message = f"WARNING: {component}:{version} contains malware. Remediate this immediately"
             print("Error: " + message)
             print(f"::error file={file},line={line}::{message}")
-            with open(os.getenv('GITHUB_OUTPUT'), 'a') as gh_output:
-                gh_output.write(f"error={message}\n")
+            append_to_github_output("error", message)
 
             if post_to_github and details.is_pull_request:
                 post_comments_to_pull_request(details.token, details.repo, details.pull_number, details.commit_sha, message, file, line)
                 post_comment_to_github_summary(details.token, details.repo, details.pull_number, message)
+    else:
+        print("No vulnerabilities found")
 
-        return False
+    append_to_github_output(has_vulnerabilities, str(has_vulnerabilities).lower())
+
+    return not has_vulnerabilities
 
 
 def get_component_reference(component, package_path):
@@ -178,3 +178,7 @@ def post_comment_to_github_summary(token, repo, pull_number, comment):
     else:
         print(f"Failed to add comment. Status code: {response.status_code}")
         print(response.json())
+
+def append_to_github_output(key: str, value: str) -> None:
+    with open(os.getenv("GITHUB_OUTPUT"), "a", encoding="utf-8") as f:
+        f.write(f"{key}={value}\n")
