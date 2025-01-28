@@ -59,7 +59,7 @@ def test_local_installation():
     venv.enter()
 
     # Install a package
-    venv.install_package('test/simple_math')
+    venv.install_package('test/python_simple_math')
 
     installed_packages = venv.list_installed_packages()
 

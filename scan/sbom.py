@@ -40,7 +40,7 @@ class Package:
         self.source.add(source)
 
     def add_type(self, type):
-        self.source.add(type)
+        self.type.add(type)
 
     def __repr__(self):
         return f"{self.name}=={self.version} Source:({', '.join(self.source)}) Type:({', '.join([t.value for t in self.type])})"
