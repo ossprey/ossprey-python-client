@@ -1,4 +1,4 @@
-from scan.sbom import create_sbom_from_env, create_sbom_from_requirements
+from scan.sbom_python import create_sbom_from_env, create_sbom_from_requirements
 from scan.virtualenv import VirtualEnv
 
 

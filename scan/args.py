@@ -48,16 +48,10 @@ def parse_arguments():
 
     # Scanning methods
     parser.add_argument(
-        '--pipenv',
-        action='store_true',
-        help="Install the package to generate the SBOM.",
-        default=get_bool(os.getenv("INPUT_PIPENV"))
-    )
-    parser.add_argument(
-        '--requirements',
-        action='store_true',
-        help="Path to the requirements file to generate the SBOM.",
-        default=get_bool(os.getenv("INPUT_REQUIREMENTS"))
+        '--mode',
+        choices=['pipenv', 'python-requirements', 'npm', 'yarn'],
+        help="Mode to generate the SBOM. Choose 'pipenv' to install the package or 'requirements' to provide a requirements file.",
+        default=os.getenv("INPUT_MODE")
     )
 
     # Authentication
@@ -70,11 +64,7 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    # Validate mutual exclusivity for environment variables and CLI
-    if args.pipenv and args.requirements:
-        parser.error("Arguments --pipenv and --requirements are mutually exclusive. Set only one.")
-
-    if not args.pipenv and not args.requirements:
-        parser.error("One of --pipenv or --requirements must be provided, either as a CLI argument or via environment variables.")
+    if args.mode is None:
+        parser.error("--mode is required")
 
     return args

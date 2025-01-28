@@ -5,7 +5,8 @@ import sys
 from scan.args import parse_arguments
 from scan.github_actions_reporter import print_gh_action_errors
 from scan.log import init_logging
-from scan.sbom import create_sbom_from_requirements
+from scan.sbom_python import create_sbom_from_requirements
+from scan.sbom_javascript import create_sbom_from_npm, create_sbom_from_yarn
 from scan.ossprey import Ossprey
 from scan.virtualenv import VirtualEnv
 
@@ -20,7 +21,9 @@ def main():
 
     package_name = args.package
 
-    if args.pipenv:
+    mode = args.mode
+
+    if mode == "pipenv":
         venv = VirtualEnv()
         venv.enter()
 
@@ -30,8 +33,12 @@ def main():
         sbom = create_sbom_from_requirements(requirements_file)
 
         venv.exit()
-    elif args.requirements:
+    elif mode == "python-requirements":
         sbom = create_sbom_from_requirements(package_name + "/requirements.txt")
+    elif mode == "npm":
+        sbom = create_sbom_from_npm(package_name)
+    elif mode == "yarn":
+        sbom = create_sbom_from_yarn(package_name)
     else:
         raise Exception("Invalid scanning method")
 
