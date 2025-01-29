@@ -7,9 +7,10 @@ from typing import Iterable, Dict
 from cyclonedx.model.vulnerability import Property
 from github import Github
 
-from scan.sbom import dict_to_sbom
+from scan.sbom_python import dict_to_sbom
 
 logger = logging.getLogger(__name__)
+
 
 def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> bool:
     """
@@ -32,9 +33,9 @@ def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> boo
             message = f"WARNING: {component}:{version} contains malware. Remediate this immediately"
             print("Error: " + message)
             print(f"::error file={file},line={line}::{message}")
-            append_to_github_output("error", message)
 
             if post_to_github and details.is_pull_request:
+                append_to_github_output("error", message)
                 post_comments_to_pull_request(details.token, details.repo, details.pull_number, details.commit_sha, message, file, line)
                 post_comment_to_github_summary(details.token, details.repo, details.pull_number, message)
     else:
@@ -179,6 +180,8 @@ def post_comment_to_github_summary(token, repo, pull_number, comment):
         print(f"Failed to add comment. Status code: {response.status_code}")
         print(response.json())
 
+
 def append_to_github_output(key: str, value: str) -> None:
-    with open(os.getenv("GITHUB_OUTPUT"), "a", encoding="utf-8") as f:
-        f.write(f"{key}={value}\n")
+    if os.getenv("GITHUB_OUTPUT"):
+        with open(os.getenv("GITHUB_OUTPUT"), "a", encoding="utf-8") as f:
+            f.write(f"{key}={value}\n")

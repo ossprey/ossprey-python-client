@@ -14,7 +14,7 @@ def set_ossprey_api_key(monkeypatch):
     [
         # Test case 1: CLI only
         (
-            ["script.py", "--url", "https://example.com", "--pipenv", "--verbose"],
+            ["script.py", "--url", "https://example.com", "--mode", "pipenv", "--verbose"],
             {},
             Namespace(
                 url="https://example.com",
@@ -22,14 +22,13 @@ def set_ossprey_api_key(monkeypatch):
                 dry_run=False,
                 github_comments=False,
                 verbose=True,
-                pipenv=True,
-                requirements=False,
+                mode="pipenv",
                 api_key="SPECIAL_KEY",
             ),
         ),
         # Test case 2: Environment variable fallback
         (
-            ["script.py", "--requirements"],
+            ["script.py", "--mode", "python-requirements"],
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "true"},
             Namespace(
                 url="https://env-url.com",
@@ -37,14 +36,13 @@ def set_ossprey_api_key(monkeypatch):
                 dry_run=True,
                 github_comments=False,
                 verbose=False,
-                pipenv=False,
-                requirements=True,
+                mode="python-requirements",
                 api_key="SPECIAL_KEY",
             ),
         ),
         # Test case 3: CLI overrides environment variables
         (
-            ["script.py", "--url", "https://cli-url.com", "--dry-run", "--pipenv", "--api-key", "UNSPECIAL_KEY"],
+            ["script.py", "--url", "https://cli-url.com", "--dry-run", "--mode", "pipenv", "--api-key", "UNSPECIAL_KEY"],
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "false"},
             Namespace(
                 url="https://cli-url.com",
@@ -52,23 +50,21 @@ def set_ossprey_api_key(monkeypatch):
                 dry_run=True,
                 github_comments=False,
                 verbose=False,
-                pipenv=True,
-                requirements=False,
+                mode="pipenv",
                 api_key="UNSPECIAL_KEY",
             ),
         ),
         # Test case 4: Handles only env vars
         (
             ["script.py"],
-            {"INPUT_URL": "https://env-url.com", "INPUT_PACKAGE": "newtest", "INPUT_PIPENV": "True"},
+            {"INPUT_URL": "https://env-url.com", "INPUT_PACKAGE": "newtest", "INPUT_MODE": "pipenv"},
             Namespace(
                 url="https://env-url.com",
                 package="newtest",
                 dry_run=False,
                 github_comments=False,
                 verbose=False,
-                pipenv=True,
-                requirements=False,
+                mode="pipenv",
                 api_key="SPECIAL_KEY",
             ),
         ),
@@ -92,6 +88,18 @@ def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
 def test_mutually_exclusive_group_error(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments
     monkeypatch.setattr("sys.argv", ["script.py"])
+
+    # Assert that the script raises a SystemExit error due to missing required arguments
+    with pytest.raises(SystemExit) as excinfo:
+        parse_arguments()
+
+    # Validate the exit code and error message
+    assert excinfo.value.code == 2  # argparse exits with code 2 for argument parsing errors
+
+
+def test_mode_only_accepts_approved_values(monkeypatch):
+    # Mock sys.argv with no mutually exclusive arguments
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "invalid"])
 
     # Assert that the script raises a SystemExit error due to missing required arguments
     with pytest.raises(SystemExit) as excinfo:

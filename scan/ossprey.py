@@ -52,6 +52,7 @@ class Ossprey:
 
         logger.debug("Authentication succeeded")
 
+    # This takes a python dictionary and submits it to the API
     def validate(self, json_bom):
 
         # Get the url
