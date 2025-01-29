@@ -30,3 +30,9 @@ jobs:
         run: |
           poetry install
           poetry run pytest
+
+      - name: Run Runtime Tests
+        run: |
+          poetry run python -m scan --dry-run --package test/npm_simple_math/ --mode npm
+          poetry run python -m scan --dry-run --package test/yarn_simple_math/ --mode yarn
+          poetry run python -m scan --dry-run --package test/python_simple_math/ --mode python
