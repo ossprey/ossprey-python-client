@@ -173,7 +173,7 @@ def create_sbom_from_npm(project_folder):
 
     # get all packages in the package-lock.json file
     if package_lock_file_exists(project_folder):
-        packages.add_list(get_all_package_lock_packages(project_folder), "package-lock.json", DependencyEnv.PROD,, type="npm")
+        packages.add_list(get_all_package_lock_packages(project_folder), "package-lock.json", DependencyEnv.PROD, type="npm")
 
     # get all packages in the package.json file
     #if package_json_file_exists(project_folder):
