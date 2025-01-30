@@ -51,7 +51,6 @@ class Package:
         return f"pkg:{self.type}/{self.name}@{self.version} Source:({', '.join(self.source)}) Env:({', '.join([t.value for t in self.env])})"
 
     def component(self):
-        print(f"pkg:npm/{self.name}@{self.version}")
         # Convert this package into a component for the SBOM
         component = Component(
             name=self.name,
