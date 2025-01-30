@@ -4,7 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from scan.sbom import DependencyType, PackageCollection
+from scan.sbom import DependencyEnv, PackageCollection
 
 
 def exec_command(command, cwd=None):
@@ -169,18 +169,18 @@ def create_sbom_from_npm(project_folder):
 
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
-        packages.add_list(get_all_node_modules_packages(project_folder), "node_modules", DependencyType.PROD)
+        packages.add_list(get_all_node_modules_packages(project_folder), "node_modules", DependencyEnv.PROD, type="npm")
 
     # get all packages in the package-lock.json file
     if package_lock_file_exists(project_folder):
-        packages.add_list(get_all_package_lock_packages(project_folder), "package-lock.json", DependencyType.PROD)
+        packages.add_list(get_all_package_lock_packages(project_folder), "package-lock.json", DependencyEnv.PROD, type="npm")
 
     # get all packages in the package.json file
     #if package_json_file_exists(project_folder):
-    #    packages.add_list(get_all_package_json_packages(project_folder), "package.json", DependencyType.PROD)
+    #    packages.add_list(get_all_package_json_packages(project_folder), "package.json", DependencyEnv.PROD, type="npm")
 
     # npm install --dry-run --verbose
-    packages.add_list(get_all_npm_dry_run_packages(project_folder), "install", DependencyType.PROD)
+    packages.add_list(get_all_npm_dry_run_packages(project_folder), "install", DependencyEnv.PROD, type="npm")
 
     return packages.create_sbom_dict()
 
@@ -194,18 +194,18 @@ def create_sbom_from_yarn(project_folder, run_install=False):
 
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
-        packages.add_list(get_all_node_modules_packages(project_folder), "node_modules", DependencyType.PROD)
+        packages.add_list(get_all_node_modules_packages(project_folder), "node_modules", DependencyEnv.PROD, type="npm")
 
     # get all packages in the package-lock.json file
     if yarn_lock_file_exists(project_folder):
-        packages.add_list(get_all_yarn_lock_packages(project_folder), "yarn.lock", DependencyType.PROD)
+        packages.add_list(get_all_yarn_lock_packages(project_folder), "yarn.lock", DependencyEnv.PROD, type="npm")
         # Get all packages in yarn list
 
     # get all packages in the package.json file
     #if package_json_file_exists(project_folder):
-    #    packages.add_list(get_all_package_json_packages(project_folder), "package.json", DependencyType.PROD)
+    #    packages.add_list(get_all_package_json_packages(project_folder), "package.json", DependencyEnv.PROD, type="npm")
 
     # yarn list
-    packages.add_list(get_all_yarn_list_packages(project_folder), "list", DependencyType.PROD)
+    packages.add_list(get_all_yarn_list_packages(project_folder), "list", DependencyEnv.PROD, type="npm")
 
     return packages.create_sbom_dict()
