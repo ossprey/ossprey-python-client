@@ -75,7 +75,7 @@ class PackageCollection:
         key = f"{name}=={version}"
         if key in self.packages and self.packages[key].get_type() == type:
             self.packages[key].add_source(source)
-            self.packages[key].env(env)
+            self.packages[key].add_env(env)
         else:
             self.packages[key] = Package(name, version, source, env, type)
 

@@ -22,7 +22,7 @@ def test_package_add_source():
     assert "github" in pkg.source
 
 
-def test_package_add_type():
+def test_package_add_env():
     pkg = Package("testpkg", "1.0.0", "pypi", DependencyEnv.PROD)
     pkg.add_env(DependencyEnv.DEV)
     assert DependencyEnv.DEV in pkg.env
@@ -56,3 +56,45 @@ def test_create_sbom_dict():
     assert "components" in sbom_dict
     assert len(sbom_dict["components"]) == 1
     assert sbom_dict["components"][0]["name"] == "testpkg"
+
+
+def test_adding_new_package_to_collection():
+    collection = PackageCollection()
+    collection.add("testpkg", "1.0.0", "pypi", DependencyEnv.PROD)
+
+    assert "testpkg==1.0.0" in collection.packages
+    assert "pypi" in collection.packages["testpkg==1.0.0"].source
+    assert DependencyEnv.PROD in collection.packages["testpkg==1.0.0"].env
+
+
+def test_adding_second_new_package_to_collection():
+    collection = PackageCollection()
+    collection.add("testpkg", "1.0.0", "pypi", DependencyEnv.PROD)
+    collection.add("testpkg", "1.0.0", "new_source", DependencyEnv.DEV)
+
+    assert "testpkg==1.0.0" in collection.packages
+    assert "new_source" in collection.packages["testpkg==1.0.0"].source
+    assert "pypi" in collection.packages["testpkg==1.0.0"].source
+    assert DependencyEnv.PROD in collection.packages["testpkg==1.0.0"].env
+    assert DependencyEnv.DEV in collection.packages["testpkg==1.0.0"].env
+
+
+def test_adding_list_to_collection():
+    collection = PackageCollection()
+    list = [
+        {"name": "testpkg", "version": "1.0.0"},
+        {"name": "testpkg2", "version": "2.0.0"},
+        {"name": "testpkg3", "version": "3.0.0"}
+    ]
+
+    collection.add_list(list, "pypi", DependencyEnv.PROD)
+    assert "testpkg==1.0.0" in collection.packages
+    assert "testpkg2==2.0.0" in collection.packages
+    assert "testpkg3==3.0.0" in collection.packages
+    assert "pypi" in collection.packages["testpkg==1.0.0"].source
+    assert "pypi" in collection.packages["testpkg2==2.0.0"].source
+    assert "pypi" in collection.packages["testpkg3==3.0.0"].source
+    assert DependencyEnv.PROD in collection.packages["testpkg==1.0.0"].env
+    assert DependencyEnv.PROD in collection.packages["testpkg2==2.0.0"].env
+    assert DependencyEnv.PROD in collection.packages["testpkg3==3.0.0"].env
+    
