@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 from enum import Enum
+from packageurl import PackageURL
 
 from cyclonedx.exception import MissingOptionalDependencyException
 from cyclonedx.model.bom import Bom
@@ -14,17 +15,18 @@ from cyclonedx.model import Property
 logger = logging.getLogger(__name__)
 
 
-class DependencyType (Enum):
+class DependencyEnv (Enum):
     DEV = "dev"
     PROD = "prod"
 
 
 class Package:
-    def __init__(self, name: str, version: str, source: str, type: DependencyType) -> None:
+    def __init__(self, name: str, version: str, source: str, env: DependencyEnv, type: str = "generic") -> None:
         self.name = name
         self.version = version
         self.source = set([source])  # This is a list of strings
-        self.type = set([type])
+        self.env = set([env])
+        self.type = type
 
     def __hash__(self):
         # Hash based on the name and version concatenated
@@ -39,13 +41,17 @@ class Package:
     def add_source(self, source):
         self.source.add(source)
 
-    def add_type(self, type):
-        self.type.add(type)
+    def add_env(self, env):
+        self.env.add(env)
+
+    def get_type(self):
+        return self.type
 
     def __repr__(self):
-        return f"{self.name}=={self.version} Source:({', '.join(self.source)}) Type:({', '.join([t.value for t in self.type])})"
+        return f"pkg:{self.type}/{self.name}@{self.version} Source:({', '.join(self.source)}) Env:({', '.join([t.value for t in self.env])})"
 
     def component(self):
+        print(f"pkg:npm/{self.name}@{self.version}")
         # Convert this package into a component for the SBOM
         component = Component(
             name=self.name,
@@ -53,8 +59,9 @@ class Package:
             type=ComponentType.LIBRARY,
             properties=[
                 Property(name="source", value=", ".join(self.source)),
-                Property(name="type", value=", ".join([t.value for t in self.type]))
-            ]
+                Property(name="env", value=", ".join([t.value for t in self.env]))
+            ],
+            purl=PackageURL(type=self.type, name=self.name, version=self.version)
         )
 
         return component
@@ -64,17 +71,17 @@ class PackageCollection:
     def __init__(self):
         self.packages = {}
 
-    def add(self, name, version, source, type):
+    def add(self, name, version, source, env, type="generic"):
         key = f"{name}=={version}"
-        if key in self.packages:
+        if key in self.packages and self.packages[key].get_type() == type:
             self.packages[key].add_source(source)
-            self.packages[key].add_type(type)
+            self.packages[key].add_env(env)
         else:
-            self.packages[key] = Package(name, version, source, type)
+            self.packages[key] = Package(name, version, source, env, type)
 
-    def add_list(self, packages, source, type):
+    def add_list(self, packages, source, env, type="generic"):
         for package in packages:
-            self.add(package["name"], package["version"], source, type)
+            self.add(package["name"], package["version"], source, env, type)
 
     def __repr__(self):
         return "\n".join([str(package) for package in self.packages.values()])
@@ -93,7 +100,7 @@ class PackageCollection:
 
     def create_sbom_dict(self):
         sbom = self.create_sbom()
-        my_json_outputter: 'JsonOutputter' = JsonV1Dot5(sbom)
+        my_json_outputter: 'JsonOutputter' = JsonV1Dot5(sbom)  # type: ignore
         serialized_json = my_json_outputter.output_as_string(indent=2)
 
         try:
