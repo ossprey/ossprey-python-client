@@ -1,0 +1,42 @@
+name: Manual Tag Creation
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag version (e.g., v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write  # Ensures only users with write access can push tags
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures all tags are fetched
+
+      - name: Validate Tag Format
+        run: |
+          if [[ ! "${{ github.event.inputs.tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format. Use semantic versioning (e.g., v1.0.0)."
+            exit 1
+          fi
+
+      - name: Check If Tag Exists
+        run: |
+          if git rev-parse ${{ github.event.inputs.tag }} >/dev/null 2>&1; then
+            echo "Tag already exists!"
+            exit 1
+          fi
+
+      - name: Create and Push Tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ github.event.inputs.tag }}
+          git push origin ${{ github.event.inputs.tag }}
