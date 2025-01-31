@@ -49,7 +49,7 @@ def create_sbom_from_requirements(requirements_file):
         logging.debug(e.stderr)
         logging.debug("--")
         logging.debug(e.stdout)
-        sys.exit(1)
+        raise e
 
 
 def create_sbom_from_env():
@@ -74,7 +74,7 @@ def create_sbom_from_env():
         logging.debug(result.stderr)
         logging.debug("--")
         logging.debug(result.stdout)
-        sys.exit(1)
+        raise e
 
 
 def dict_to_sbom(sbom_dict):
