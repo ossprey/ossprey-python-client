@@ -47,7 +47,8 @@ class VirtualEnv:
             logger.error(f"An error occurred while executing {' '.join(command)}':")
             logger.error(f"stdout:\n{e.stdout}")
             logger.error(f"stderr:\n{e.stderr}")
-            sys.exit(1)  # Exit the script with a non-zero status code
+            # Throw the exception to the caller
+            raise e
 
         return result
 
@@ -143,7 +144,9 @@ class VirtualEnv:
             logger.error(
                 f"Error: The virtual environment path '{site_packages}' does not exist."
             )
-            sys.exit(1)
+            raise FileNotFoundError(
+                f"The virtual environment path '{site_packages}' does not exist."
+            )
 
         # Save the original sys.path
         self.original_sys_path = sys.path[:]

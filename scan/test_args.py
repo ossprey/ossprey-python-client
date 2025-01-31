@@ -24,6 +24,7 @@ def set_ossprey_api_key(monkeypatch):
                 verbose=True,
                 mode="pipenv",
                 api_key="SPECIAL_KEY",
+                soft_error=False,
             ),
         ),
         # Test case 2: Environment variable fallback
@@ -38,6 +39,7 @@ def set_ossprey_api_key(monkeypatch):
                 verbose=False,
                 mode="python-requirements",
                 api_key="SPECIAL_KEY",
+                soft_error=False,
             ),
         ),
         # Test case 3: CLI overrides environment variables
@@ -52,6 +54,7 @@ def set_ossprey_api_key(monkeypatch):
                 verbose=False,
                 mode="pipenv",
                 api_key="UNSPECIAL_KEY",
+                soft_error=False,
             ),
         ),
         # Test case 4: Handles only env vars
@@ -66,6 +69,7 @@ def set_ossprey_api_key(monkeypatch):
                 verbose=False,
                 mode="pipenv",
                 api_key="SPECIAL_KEY",
+                soft_error=False,
             ),
         ),
     ],

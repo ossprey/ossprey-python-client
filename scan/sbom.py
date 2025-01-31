@@ -94,6 +94,7 @@ class PackageCollection:
 
         # Add all packages to the SBOM
         bom.components = [package.component() for package in self.packages.values()]
+        print(f"{len(bom.components)} components found")
 
         return bom
 

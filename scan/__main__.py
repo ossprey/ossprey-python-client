@@ -1,4 +1,7 @@
+import sys
+
 from scan.scan import main
 
 if __name__ == "__main__":
-    main()
+    ret = main()
+    sys.exit(ret)
