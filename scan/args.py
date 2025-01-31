@@ -62,6 +62,14 @@ def parse_arguments():
         default=os.getenv("API_KEY")
     )
 
+    # Authentication
+    parser.add_argument(
+        '--soft-error',
+        action="store_true",
+        help="If the scan causes an error don't stop the CICD process from continuing",
+        default=get_bool(os.getenv("INPUT_SOFT_ERROR"))
+    )
+
     args = parser.parse_args()
 
     if args.mode is None:
