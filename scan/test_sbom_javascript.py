@@ -84,15 +84,19 @@ def test_create_sbom_from_npm():
     with patch("scan.sbom_javascript.get_all_npm_dry_run_packages") as mock_get_all_npm_dry_run_packages:
         mock_get_all_npm_dry_run_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
         sbom = create_sbom_from_npm(".")
-        assert "components" in sbom
-        assert len(sbom["components"]) == 1
-        assert sbom["components"][0]["name"] == "testpkg"
+        assert len(sbom.components) == 1
+
+        # Get only entry in sbom.components and confirm it's name value is testpkg
+        for component in sbom.components.values():
+            assert component.name == "testpkg"
 
 
 def test_create_sbom_from_yarn():
     with patch("scan.sbom_javascript.get_all_yarn_list_packages") as mock_get_all_yarn_list_packages:
         mock_get_all_yarn_list_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
         sbom = create_sbom_from_yarn(".")
-        assert "components" in sbom
-        assert len(sbom["components"]) == 1
-        assert sbom["components"][0]["name"] == "testpkg"
+        assert len(sbom.components) == 1
+
+        # Get only entry in sbom.components and confirm it's name value is testpkg
+        for component in sbom.components.values():
+            assert component.name == "testpkg"

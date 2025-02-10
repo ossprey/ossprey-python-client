@@ -2,17 +2,15 @@ import requests
 import os
 import logging
 
-from typing import Iterable, Dict
+from ossbom.model.ossbom import OSSBOM
 
-from cyclonedx.model.vulnerability import Property
 from github import Github
 
-from scan.sbom_python import dict_to_sbom
 
 logger = logging.getLogger(__name__)
 
 
-def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> bool:
+def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github=False) -> bool:
     """
     Print the errors in a format that can be consumed by GitHub Actions
     """
@@ -20,17 +18,15 @@ def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> boo
     if post_to_github:
         details = create_github_details()
 
-    sbom = dict_to_sbom(sbom_dict)
-
     has_vulnerabilities = sbom.vulnerabilities is not None and len(sbom.vulnerabilities) > 0
 
     if has_vulnerabilities:
         for vuln in sbom.vulnerabilities:
-            properties = properties_to_dict(vuln.properties)
-            component = properties["component"]
-            version = properties["version"]
-            file, line = get_component_reference(component, package_path)
-            message = f"WARNING: {component}:{version} contains malware. Remediate this immediately"
+            name = vuln.purl.name
+            version = vuln.purl.version
+
+            file, line = get_component_reference(name, package_path)
+            message = f"WARNING: {name}:{version} contains malware. Remediate this immediately"
             print("Error: " + message)
             print(f"::error file={file},line={line}::{message}")
 
@@ -46,7 +42,7 @@ def print_gh_action_errors(sbom_dict, package_path, post_to_github=False) -> boo
     return not has_vulnerabilities
 
 
-def get_component_reference(component, package_path):
+def get_component_reference(component_name: str, package_path: str):
     """
     Search through the files in the package until a requirements.txt or setup.py file
     that references the component name is found.
@@ -68,23 +64,13 @@ def get_component_reference(component, package_path):
                 try:
                     with open(file_path, 'r') as f:
                         for line_num, line in enumerate(f, start=1):
-                            if component in line:
+                            if component_name in line:
                                 return file_path, line_num
                 except Exception as e:
                     print(f"Error reading file {file_path}: {e}")
 
     # If component not found
     return None, None
-
-
-def properties_to_dict(properties: Iterable[Property]) -> Dict[str, str]:
-    """
-    Convert properties to a dictionary
-    """
-    ret = {}
-    for prop in properties:
-        ret[prop.name] = prop.value
-    return ret
 
 
 class GitHubDetails:

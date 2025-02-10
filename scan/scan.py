@@ -1,6 +1,7 @@
 import json
 import logging
-import sys
+
+from ossbom.converters.factory import SBOMConverterFactory
 
 from scan.args import parse_arguments
 from scan.github_actions_reporter import print_gh_action_errors
@@ -46,13 +47,18 @@ def main():
         if not args.dry_run:
             ossprey = Ossprey(args.url, args.api_key)
 
-            sbom = ossprey.validate(sbom)
+            # Compress to MINIBOM
+            sbom = SBOMConverterFactory.to_minibom(sbom)
 
+            sbom = ossprey.validate(sbom)
             if not sbom:
                 raise Exception("Issue OSSPREY Service")
+            
+            # Convert to OSSBOM
+            sbom = SBOMConverterFactory.from_minibom(sbom)
 
         if sbom:
-            logger.debug(json.dumps(sbom, indent=4))
+            logger.debug(json.dumps(sbom.to_dict(), indent=4))
 
             # Process the result
             ret = print_gh_action_errors(sbom, args.package, args.github_comments)
@@ -61,6 +67,10 @@ def main():
                 raise Exception("Error Malicious Package Found")
 
     except Exception as e:
+
+        # Print the full stack trace
+        logger.exception(e)
+
         if args.soft_error:
             logger.error(f"Error: {e}")
             logger.error("Failing gracefully")

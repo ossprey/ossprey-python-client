@@ -54,9 +54,9 @@ class Ossprey:
         logger.debug("Authentication succeeded")
 
     # This takes a python dictionary and submits it to the API
-    def validate(self, json_bom):
+    def validate(self, minibom: dict) -> dict:
 
-        response = self.submit(json_bom)
+        response = self.submit(minibom)
 
         match response.status_code:
             case 200:
