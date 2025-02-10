@@ -5,7 +5,7 @@ from scan.virtualenv import VirtualEnv
 def test_get_sbom():
     sbom = create_sbom_from_env()
 
-    assert sbom.get('bomFormat') == 'CycloneDX'
+    assert sbom.format == 'OSSBOM'
 
 
 def test_get_sbom_from_venv():
@@ -21,9 +21,9 @@ def test_get_sbom_from_venv():
     # Get the SBOM
     sbom = create_sbom_from_requirements(requirements_file)
 
-    assert sbom.get('bomFormat') == 'CycloneDX'
-    assert len(sbom['components']) == 1
-    assert any(map(lambda x: x['name'] == 'numpy', sbom['components']))
+    assert sbom.format == 'OSSBOM'
+    assert len(sbom.components) == 1
+    assert any(map(lambda x: x.name == 'numpy', sbom.components.values()))
 
 
 def test_get_sbom_from_venv_local_package():
@@ -39,6 +39,6 @@ def test_get_sbom_from_venv_local_package():
     # Get the SBOM
     sbom = create_sbom_from_requirements(requirements_file)
 
-    assert sbom.get('bomFormat') == 'CycloneDX'
-    assert len(sbom['components']) == 7
-    assert any(map(lambda x: x['name'] == 'simple_math', sbom['components']))
+    assert sbom.format == 'OSSBOM'
+    assert len(sbom.components) == 7
+    assert any(map(lambda x: x.name == 'simple_math', sbom.components.values()))
