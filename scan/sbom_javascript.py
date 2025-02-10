@@ -53,8 +53,15 @@ def get_all_node_modules_packages(project_folder: str) -> List[dict]:
         with open(package_file) as f:
             data = json.load(f)
             if "name" in data and "version" in data:
+                name = data['name']
+                version = data['version']
+
+                # Make sure name is valid
+                if name.startswith("<%="):
+                    continue
+
                 # Extract the name and version for each package
-                packages.append({"name": data["name"], "version": data["version"]})
+                packages.append({"name": name, "version": version})
 
     return packages
 
@@ -137,8 +144,15 @@ def get_all_yarn_lock_packages(project_folder: str) -> List[dict]:
         for name in package_names.split(", "):
 
             # Remove the last @ and everything after it
-            name = name.rsplit("@", 1)[0]
-            package_data.append({"name": name.strip(), "version": version.strip()})
+            name = name.rsplit("@", 1)[0].strip()
+
+            # Validate the name is not an alias
+            alias_match = re.match(r"([^@]+)@npm:([^@]+)", name)
+
+            if alias_match:
+                _, name = alias_match.groups()
+
+            package_data.append({"name": name, "version": version.strip()})
 
     return package_data
 

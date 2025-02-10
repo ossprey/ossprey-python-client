@@ -45,6 +45,9 @@ def main():
             raise Exception("Invalid scanning method")
 
         logging.info(f"Scanning {len(sbom.get_components())}")
+        osbom = SBOMConverterFactory.to_minibom(sbom)
+        from pprint import pprint
+        pprint(osbom)
 
         if not args.dry_run:
             ossprey = Ossprey(args.url, args.api_key)
