@@ -44,6 +44,8 @@ def main():
         else:
             raise Exception("Invalid scanning method")
 
+        logging.info(f"Scanning {len(sbom.get_components())}")
+
         if not args.dry_run:
             ossprey = Ossprey(args.url, args.api_key)
 

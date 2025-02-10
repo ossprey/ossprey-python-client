@@ -153,10 +153,12 @@ def get_all_yarn_list_packages(project_folder: str) -> List[dict]:
     ret = []
 
     # Run the command
-    result = exec_command("yarn list --json", project_folder)
+    result = exec_command("yarn list --json --no-progress", project_folder)
+
+    list_json = result.strip().split('\n')[-1]
 
     # Parse the output
-    data = json.loads(result)
+    data = json.loads(list_json)
 
     # Extract the packages
     for package in data["data"]["trees"]:
