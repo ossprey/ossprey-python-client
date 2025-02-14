@@ -56,7 +56,6 @@ def main():
             if not sbom:
                 raise Exception("Issue OSSPREY Service")
             
-            print(sbom)
             # Convert to OSSBOM
             sbom = SBOMConverterFactory.from_minibom(sbom)
 
