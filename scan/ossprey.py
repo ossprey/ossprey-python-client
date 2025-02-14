@@ -62,8 +62,8 @@ class Ossprey:
             case 200:
                 return response.json()
             case 202:
-                job_id = response.json()['job_id']
-                return self.wait_for_completion(job_id)
+                job_ids = response.json()['job_ids']
+                return self.wait_for_completion(job_ids)
             case _:
                 logger.error("Failed to submit request")
                 logger.debug(f"Status code: {response.status_code}")
@@ -87,10 +87,10 @@ class Ossprey:
 
         return response
         
-    def wait_for_completion(self, job_id):
+    def wait_for_completion(self, job_ids):
         url = self.api_url + f'/status'
 
-        params = {"job_id": job_id}
+        params = {"job_ids": ','.join(job_ids)}
 
         headers = {'Content-Type': 'application/json', 'Authorization': f"Bearer {self.access_token}"}
         for i in range(1, 20):
