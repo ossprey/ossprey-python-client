@@ -1,8 +1,10 @@
+# To install run cp .githooks/pre-push .git/hooks/pre-push
+
 # Run unit tests
 poetry run pytest
 
 # Test with test packages locally
 poetry run python -m scan --dry-run --package test/npm_simple_math/ --mode npm
 poetry run python -m scan --dry-run --package test/yarn_simple_math/ --mode yarn
-poetry run python -m scan --dry-run --package test/yarn_massive_math/ --mode python-requirements
+poetry run python -m scan --dry-run --package test/yarn_massive_math/ --mode yarn
 poetry run python -m scan --dry-run --package test/python_simple_math/ --mode python-requirements
