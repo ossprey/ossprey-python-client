@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import subprocess
@@ -9,6 +10,8 @@ from typing import List
 from ossbom.model.ossbom import OSSBOM
 from ossbom.model.component import Component
 from ossbom.model.dependency_env import DependencyEnv
+
+logger = logging.getLogger(__name__)
 
 
 def exec_command(command: str, cwd=None):
@@ -25,7 +28,7 @@ def exec_command(command: str, cwd=None):
         # Parse the output
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print("Error while running yarn:", e)
+        logger.error("Error while running yarn:", e)
         return e.stdout
 
 
