@@ -62,7 +62,8 @@ class Ossprey:
             case 200:
                 return response.json()
             case 202:
-                job_ids = response.json()['job_ids']
+                json = response.json()
+                job_ids = json['job_ids']
                 return self.wait_for_completion(job_ids)
             case _:
                 logger.error("Failed to submit request")
