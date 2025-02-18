@@ -2,9 +2,10 @@ import requests
 import os
 import logging
 
-from ossbom.model.ossbom import OSSBOM
-
 from github import Github
+from packageurl import PackageURL
+
+from ossbom.model.ossbom import OSSBOM
 
 
 logger = logging.getLogger(__name__)
@@ -22,8 +23,9 @@ def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github=False
 
     if has_vulnerabilities:
         for vuln in sbom.vulnerabilities:
-            name = vuln.purl.name
-            version = vuln.purl.version
+            purl = PackageURL.from_string(vuln.purl)
+            name = purl.name
+            version = purl.version
 
             file, line = get_component_reference(name, package_path)
             message = f"WARNING: {name}:{version} contains malware. Remediate this immediately"
