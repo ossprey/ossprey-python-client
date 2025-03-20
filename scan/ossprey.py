@@ -1,14 +1,15 @@
 import json
 import logging
+import os
 import requests
 import time
 
 logger = logging.getLogger(__name__)
 
 # Global Cognito Constants
-USER_POOL_DOMAIN = "ossprey-auth"
-CLIENT_ID = "77o2e7rf9ulhbpo78h6rdirqin"
-REGION = "eu-west-1"
+USER_POOL_DOMAIN = os.environ.get("USER_POOL_DOMAIN", "ossprey-auth")
+CLIENT_ID = os.environ.get("CLIENT_ID", "77o2e7rf9ulhbpo78h6rdirqin")
+REGION = os.environ.get("REGION", "eu-west-1")
 TOKEN_ENDPOINT = f"https://{USER_POOL_DOMAIN}.auth.{REGION}.amazoncognito.com/oauth2/token"
 
 
@@ -63,8 +64,9 @@ class Ossprey:
                 return response.json()
             case 202:
                 json = response.json()
-                job_ids = json['job_ids']
-                return self.wait_for_completion(job_ids)
+                sbom_id = json['sbom_id']
+                scan_id = json['scan_id']
+                return self.wait_for_completion(sbom_id, scan_id)
             case _:
                 logger.error("Failed to submit request")
                 logger.debug(f"Status code: {response.status_code}")
@@ -88,10 +90,10 @@ class Ossprey:
 
         return response
         
-    def wait_for_completion(self, job_ids):
-        url = self.api_url + f'/status'
+    def wait_for_completion(self, sbom_id, scan_id):
+        url = self.api_url + '/status'
 
-        params = {"job_ids": ','.join(job_ids)}
+        params = {"sbom_id": sbom_id, "scan_id": scan_id}
 
         headers = {'Content-Type': 'application/json', 'Authorization': f"Bearer {self.access_token}"}
         for i in range(1, 20):
