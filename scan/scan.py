@@ -10,6 +10,7 @@ from scan.sbom_python import create_sbom_from_requirements
 from scan.sbom_javascript import create_sbom_from_npm, create_sbom_from_yarn
 from scan.ossprey import Ossprey
 from scan.virtualenv import VirtualEnv
+from scan.environment import get_environment_details
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,10 @@ def main():
         else:
             raise Exception("Invalid scanning method")
 
+        # Update sbom to contain the local environment
+        env = get_environment_details(package_name)
+        sbom.update_environment(env)
+
         logging.info(f"Scanning {len(sbom.get_components())}")
 
         if not args.dry_run:
@@ -55,8 +60,8 @@ def main():
             sbom = ossprey.validate(sbom)
             if not sbom:
                 raise Exception("Issue OSSPREY Service")
-            
-            # Convert to OSSBOM
+
+            # Convert to OSSBOM
             sbom = SBOMConverterFactory.from_minibom(sbom)
 
         if sbom:
@@ -70,7 +75,7 @@ def main():
 
     except Exception as e:
 
-        # Print the full stack trace
+        # Print the full stack trace
         logger.exception(e)
 
         if args.soft_error:
