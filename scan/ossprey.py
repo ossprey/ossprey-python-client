@@ -67,6 +67,9 @@ class Ossprey:
                 sbom_id = json['sbom_id']
                 scan_id = json['scan_id']
                 return self.wait_for_completion(sbom_id, scan_id)
+            case 429:
+                logger.error("Rate limit exceeded")
+                return None
             case _:
                 logger.error("Failed to submit request")
                 logger.debug(f"Status code: {response.status_code}")

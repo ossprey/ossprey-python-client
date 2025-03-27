@@ -1,5 +1,4 @@
 from unittest.mock import patch, MagicMock
-from packageurl import PackageURL
 
 from scan.github_actions_reporter import print_gh_action_errors
 from ossbom.model.ossbom import OSSBOM
@@ -7,7 +6,7 @@ from ossbom.model.ossbom import OSSBOM
 
 def test_no_vulnerabilities():
     sbom = OSSBOM()
-    sbom.vulnerabilities=[]
+    sbom.vulnerabilities = []
     package_path = "test/path"
     
     with patch("builtins.print") as mock_print, patch("scan.github_actions_reporter.append_to_github_output") as mock_append:
@@ -20,7 +19,7 @@ def test_no_vulnerabilities():
 
 def test_with_vulnerabilities():
     sbom = OSSBOM()
-    sbom.vulnerabilities=[MagicMock(purl="pkg:pypi/testpkg@1.0.0")]
+    sbom.vulnerabilities = [MagicMock(purl="pkg:pypi/testpkg@1.0.0")]
     package_path = "test/path"
     
     with patch("builtins.print") as mock_print, \
@@ -37,7 +36,7 @@ def test_with_vulnerabilities():
 
 def test_with_github_posting():
     sbom = OSSBOM()
-    sbom.vulnerabilities=[MagicMock(purl="pkg:pypi/testpkg@1.0.0")]
+    sbom.vulnerabilities = [MagicMock(purl="pkg:pypi/testpkg@1.0.0")]
     package_path = "test/path"
     details_mock = MagicMock(is_pull_request=True, token="token", repo="repo", pull_number=1, commit_sha="sha")
     
