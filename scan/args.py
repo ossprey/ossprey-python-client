@@ -25,7 +25,7 @@ def parse_arguments():
         "--package",
         type=str,
         help="The package to scan",
-        default=os.getenv("INPUT_PACKAGE", "")
+        default=os.getenv("INPUT_PACKAGE", os.getcwd())
     )
     parser.add_argument(
         "--dry-run",
@@ -50,9 +50,9 @@ def parse_arguments():
     # Scanning methods
     parser.add_argument(
         '--mode',
-        choices=['pipenv', 'python-requirements', 'npm', 'yarn'],
+        choices=['pipenv', 'python-requirements', 'npm', 'yarn', 'auto'],
         help="Mode to generate the SBOM. Choose 'pipenv' to install the package or 'requirements' to provide a requirements file.",
-        default=os.getenv("INPUT_MODE")
+        default=os.getenv("INPUT_MODE", 'auto')
     )
 
     # Authentication

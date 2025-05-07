@@ -186,9 +186,7 @@ def get_all_yarn_list_packages(project_folder: str) -> List[dict]:
 
 
 # Global functions
-def create_sbom_from_npm(project_folder: str) -> OSSBOM:
-
-    ossbom = OSSBOM()
+def update_sbom_from_npm(ossbom: OSSBOM, project_folder: str) -> OSSBOM:
 
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
@@ -207,9 +205,7 @@ def create_sbom_from_npm(project_folder: str) -> OSSBOM:
     return ossbom
 
 
-def create_sbom_from_yarn(project_folder: str, run_install: bool = False) -> OSSBOM:
-
-    ossbom = OSSBOM()
+def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str, run_install: bool = False) -> OSSBOM:
 
     if run_install:
         run_yarn_install(project_folder)
