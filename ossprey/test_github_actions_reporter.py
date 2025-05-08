@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock
 
-from scan.github_actions_reporter import print_gh_action_errors
+from ossprey.github_actions_reporter import print_gh_action_errors
 from ossbom.model.ossbom import OSSBOM
 
 
@@ -9,7 +9,7 @@ def test_no_vulnerabilities():
     sbom.vulnerabilities = []
     package_path = "test/path"
     
-    with patch("builtins.print") as mock_print, patch("scan.github_actions_reporter.append_to_github_output") as mock_append:
+    with patch("builtins.print") as mock_print, patch("ossprey.github_actions_reporter.append_to_github_output") as mock_append:
         result = print_gh_action_errors(sbom, package_path)
         
         mock_print.assert_called_with("No vulnerabilities found")
@@ -23,8 +23,8 @@ def test_with_vulnerabilities():
     package_path = "test/path"
     
     with patch("builtins.print") as mock_print, \
-         patch("scan.github_actions_reporter.get_component_reference", return_value=("file.py", 10)), \
-         patch("scan.github_actions_reporter.append_to_github_output") as mock_append:
+         patch("ossprey.github_actions_reporter.get_component_reference", return_value=("file.py", 10)), \
+         patch("ossprey.github_actions_reporter.append_to_github_output") as mock_append:
         
         result = print_gh_action_errors(sbom, package_path)
         
@@ -40,11 +40,11 @@ def test_with_github_posting():
     package_path = "test/path"
     details_mock = MagicMock(is_pull_request=True, token="token", repo="repo", pull_number=1, commit_sha="sha")
     
-    with patch("scan.github_actions_reporter.create_github_details", return_value=details_mock), \
-         patch("scan.github_actions_reporter.get_component_reference", return_value=("file.py", 10)), \
-         patch("scan.github_actions_reporter.append_to_github_output") as mock_append, \
-         patch("scan.github_actions_reporter.post_comments_to_pull_request") as mock_post_comment, \
-         patch("scan.github_actions_reporter.post_comment_to_github_summary") as mock_post_summary:
+    with patch("ossprey.github_actions_reporter.create_github_details", return_value=details_mock), \
+         patch("ossprey.github_actions_reporter.get_component_reference", return_value=("file.py", 10)), \
+         patch("ossprey.github_actions_reporter.append_to_github_output") as mock_append, \
+         patch("ossprey.github_actions_reporter.post_comments_to_pull_request") as mock_post_comment, \
+         patch("ossprey.github_actions_reporter.post_comment_to_github_summary") as mock_post_summary:
         
         result = print_gh_action_errors(sbom, package_path, post_to_github=True)
         

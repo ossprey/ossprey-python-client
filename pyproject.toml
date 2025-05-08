@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "scan"
+name = "ossprey"
 version = "0.1.0"
-description = "Script to scan a given folder, create an SBOM and then submit to for malware scanning"
+description = "Ossprey tooling to scan your software package, create an SBOM and then submit it to our service for malware scanning"
 authors = ["dreadn0ught"]
 license = "GPL-3.0"
 readme = "README.md"
@@ -19,6 +19,9 @@ gitpython = "^3.1.44"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pytest-cov = "^5.0.0"
+
+[tool.poetry.scripts]
+ossprey = "ossprey.scan:main"
 
 [build-system]
 requires = ["poetry-core"]

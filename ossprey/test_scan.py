@@ -1,6 +1,6 @@
 import pytest
 
-from scan.scan import main
+from ossprey.scan import main
 
 
 def test_main_function(monkeypatch, capsys):
@@ -9,7 +9,10 @@ def test_main_function(monkeypatch, capsys):
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
     monkeypatch.setenv("INPUT_DRY_RUN", "True")
 
-    main()
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code == 0
 
     captured = capsys.readouterr()
     print(captured.out)
@@ -26,6 +29,7 @@ def test_main_function_soft_error(monkeypatch, soft_error, expected_ret):
     monkeypatch.setenv("INPUT_DRY_RUN", "True")
     monkeypatch.setenv("INPUT_SOFT_ERROR", soft_error)
 
-    ret = main()
+    with pytest.raises(SystemExit) as excinfo:
+        main()
 
-    assert ret == expected_ret
+    assert excinfo.value.code == expected_ret

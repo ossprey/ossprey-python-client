@@ -2,7 +2,7 @@ import os
 import pytest
 
 from argparse import Namespace
-from scan.args import parse_arguments
+from ossprey.args import parse_arguments
 
 
 @pytest.fixture(autouse=True)
@@ -136,7 +136,6 @@ def test_no_api_key_and_no_dryrun(monkeypatch):
 
     # Validate the exit code and error message
     assert excinfo.value.code == 2  # argparse exits with code 2 for argument parsing errors
-
 
 
 def test_mode_only_accepts_approved_values(monkeypatch):

@@ -1,17 +1,18 @@
 import json
 import logging
 import os
+import sys
 
 from ossbom.converters.factory import SBOMConverterFactory
 
-from scan.args import parse_arguments
-from scan.github_actions_reporter import print_gh_action_errors
-from scan.log import init_logging
-from scan.sbom_python import update_sbom_from_requirements
-from scan.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
-from scan.ossprey import Ossprey
-from scan.virtualenv import VirtualEnv
-from scan.environment import get_environment_details
+from ossprey.args import parse_arguments
+from ossprey.github_actions_reporter import print_gh_action_errors
+from ossprey.log import init_logging
+from ossprey.sbom_python import update_sbom_from_requirements
+from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
+from ossprey.ossprey import Ossprey
+from ossprey.virtualenv import VirtualEnv
+from ossprey.environment import get_environment_details
 
 from ossbom.model.ossbom import OSSBOM
 
@@ -50,7 +51,7 @@ def get_modes(directory):
     return modes
 
 
-def main():
+def main() -> None:
 
     args = parse_arguments()
 
@@ -66,7 +67,7 @@ def main():
             modes = get_modes(package_name)
             if len(modes) == 0:
                 logging.error("No package manager found")
-                return 1
+                sys.exit(1)
         else:
             modes = [mode]
 
@@ -127,7 +128,10 @@ def main():
         if args.soft_error:
             logger.error(f"Error: {e}")
             logger.error("Failing gracefully")
-            return 0
+            sys.exit(0)
         else:
             logger.error(f"Error: {e}")
-            return 1
+            sys.exit(1)
+
+
+    sys.exit(0)
