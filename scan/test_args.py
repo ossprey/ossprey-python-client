@@ -105,18 +105,39 @@ def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
     assert vars(args) == vars(expected)
 
 
-def test_no_api_key(monkeypatch):
+def test_no_api_key_and_with_dryrun(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments
-    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv"])
+    monkeypatch.delenv("API_KEY")
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv", "--dry-run"])
+    args = parse_arguments()
+    print(args.api_key)
+
+    expected = Namespace(
+        url="https://api.ossprey.com",
+        package=os.getcwd(),
+        dry_run=True,
+        github_comments=False,
+        verbose=False,
+        mode="pipenv",
+        api_key=None,
+        soft_error=False)
+    
+    assert vars(args) == vars(expected)
+
+
+def test_no_api_key_and_no_dryrun(monkeypatch):
+    # Mock sys.argv with no mutually exclusive arguments
     monkeypatch.delenv("API_KEY")
 
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv"])
     # Assert that the script raises a SystemExit error due to missing required arguments
     with pytest.raises(SystemExit) as excinfo:
-        args = parse_arguments()
-        print(args.api_key)
+        parse_arguments()
 
     # Validate the exit code and error message
     assert excinfo.value.code == 2  # argparse exits with code 2 for argument parsing errors
+
+
 
 def test_mode_only_accepts_approved_values(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments

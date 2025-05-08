@@ -74,7 +74,7 @@ def parse_arguments():
     args = parser.parse_args()
 
     # Check if the API key is provided
-    if args.api_key is None:
+    if args.api_key is None and args.dry_run is False:
         parser.error("--api_key or the environment variable API_KEY is required")
 
     return args
