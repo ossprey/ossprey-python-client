@@ -60,7 +60,7 @@ def parse_arguments():
         '--api-key',
         type=str,
         help="API Key to authenticate with the API.",
-        default=os.getenv("API_KEY")
+        default=os.getenv("API_KEY", None)
     )
 
     # Authentication
@@ -73,7 +73,8 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    if args.mode is None:
-        parser.error("--mode is required")
+    # Check if the API key is provided
+    if args.api_key is None:
+        parser.error("--api_key or the environment variable API_KEY is required")
 
     return args

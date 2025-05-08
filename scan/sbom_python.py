@@ -39,9 +39,8 @@ def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
 
 def update_sbom_from_requirements(ossbom: OSSBOM, requirements_file: str) -> OSSBOM:
     sbom = create_sbom_from_requirements(requirements_file)
-    for component in sbom.get_components():
-        # Add the component to the existing SBOM
-        sbom.add_component(component)
+    ossbom.add_components(sbom.get_components())
+    
     return ossbom
 
 
