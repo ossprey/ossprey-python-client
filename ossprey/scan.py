@@ -51,87 +51,64 @@ def get_modes(directory):
     return modes
 
 
-def main() -> None:
+def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
 
-    args = parse_arguments()
+    if mode == "auto":
+        logging.debug("Auto mode selected")
+        
+        # Check the folder for files that map to different package managers
+        modes = get_modes(package_name)
+        if len(modes) == 0:
+            logging.error("No package manager found")
+            raise Exception("No package manager found in the directory")
+    else:
+        modes = [mode]
 
-    init_logging(args.verbose)
+    # If package location doesn't exist, raise an error
+    if not os.path.exists(package_name):
+        logging.error(f"Package {package_name} does not exist")
+        raise Exception(f"Package {package_name} does not exist")
 
-    try:
-        package_name = args.package
+    sbom = OSSBOM()
 
-        mode = args.mode
-        if mode == "auto":
-            logging.debug("Auto mode selected")
-            # Check the folder for files that map to different package managers
-            modes = get_modes(package_name)
-            if len(modes) == 0:
-                logging.error("No package manager found")
-                sys.exit(1)
-        else:
-            modes = [mode]
+    if "pipenv" in modes:
+        venv = VirtualEnv()
+        venv.enter()
 
-        sbom = OSSBOM()
+        venv.install_package(package_name)
+        requirements_file = venv.create_requirements_file_from_env()
 
-        if "pipenv" in modes:
-            venv = VirtualEnv()
-            venv.enter()
+        sbom = update_sbom_from_requirements(sbom, requirements_file)
 
-            venv.install_package(package_name)
-            requirements_file = venv.create_requirements_file_from_env()
+        venv.exit()
+    elif "python-requirements" in modes:
+        sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
+    elif "npm" in modes:
+        sbom = update_sbom_from_npm(sbom, package_name)
+    elif "yarn" in modes:
+        sbom = update_sbom_from_yarn(sbom, package_name)
+    else:
+        raise Exception("Invalid scanning method: " + str(modes))
 
-            sbom = update_sbom_from_requirements(sbom, requirements_file)
+    # Update sbom to contain the local environment
+    env = get_environment_details(package_name)
+    sbom.update_environment(env)
 
-            venv.exit()
-        elif "python-requirements" in modes:
-            sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
-        elif "npm" in modes:
-            sbom = update_sbom_from_npm(sbom, package_name)
-        elif "yarn" in modes:
-            sbom = update_sbom_from_yarn(sbom, package_name)
-        else:
-            raise Exception("Invalid scanning method: " + str(modes))
+    logging.info(f"Scanning {len(sbom.get_components())}")
 
-        # Update sbom to contain the local environment
-        env = get_environment_details(package_name)
-        sbom.update_environment(env)
+    if not local_scan:
+        ossprey = Ossprey(url, api_key)
 
-        logging.info(f"Scanning {len(sbom.get_components())}")
+        # Compress to MINIBOM
+        sbom = SBOMConverterFactory.to_minibom(sbom)
 
-        if not args.dry_run:
-            ossprey = Ossprey(args.url, args.api_key)
+        sbom = ossprey.validate(sbom)
+        if not sbom:
+            raise Exception("Issue OSSPREY Service")
 
-            # Compress to MINIBOM
-            sbom = SBOMConverterFactory.to_minibom(sbom)
+        # Convert to OSSBOM
+        sbom = SBOMConverterFactory.from_minibom(sbom)
 
-            sbom = ossprey.validate(sbom)
-            if not sbom:
-                raise Exception("Issue OSSPREY Service")
+    logger.debug(json.dumps(sbom.to_dict(), indent=4))
 
-            # Convert to OSSBOM
-            sbom = SBOMConverterFactory.from_minibom(sbom)
-
-        if sbom:
-            logger.debug(json.dumps(sbom.to_dict(), indent=4))
-
-            # Process the result
-            ret = print_gh_action_errors(sbom, args.package, args.github_comments)
-
-            if not ret:
-                raise Exception("Error Malicious Package Found")
-
-    except Exception as e:
-
-        # Print the full stack trace
-        logger.exception(e)
-
-        if args.soft_error:
-            logger.error(f"Error: {e}")
-            logger.error("Failing gracefully")
-            sys.exit(0)
-        else:
-            logger.error(f"Error: {e}")
-            sys.exit(1)
-
-
-    sys.exit(0)
+    return sbom

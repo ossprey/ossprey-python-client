@@ -1,35 +1,56 @@
+from ossprey.scan import scan
+from ossbom.model.ossbom import OSSBOM
 import pytest
 
-from ossprey.scan import main
+
+@pytest.mark.parametrize("mode", ["python-requirements", "auto"])
+def test_scan_py_success(mode):
+    ret = scan("test/python_simple_math", mode=mode, local_scan=True)
+    assert isinstance(ret, OSSBOM)
+    assert [comp.name for comp in ret.get_components()] == ['numpy', 'requests']
 
 
-def test_main_function(monkeypatch, capsys):
-    monkeypatch.setattr("sys.argv", ["script.py"])
-    monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math")
-    monkeypatch.setenv("INPUT_MODE", "python-requirements")
-    monkeypatch.setenv("INPUT_DRY_RUN", "True")
+def test_scan_py_success_pipenv():
+    ret = scan("test/python_simple_math", mode="pipenv", local_scan=True)
+    assert isinstance(ret, OSSBOM)
 
-    with pytest.raises(SystemExit) as excinfo:
-        main()
+    result = [  
+        'certifi',
+        'charset-normalizer',
+        'idna',
+        'numpy',
+        'requests',
+        'simple_math',
+        'urllib3'
+    ]
+    assert [comp.name for comp in ret.get_components()] == result
 
-    assert excinfo.value.code == 0
 
-    captured = capsys.readouterr()
-    print(captured.out)
-    assert "No vulnerabilities found" in captured.out
+@pytest.mark.parametrize("mode", ["npm", "auto"])
+def test_scan_npm_success(mode):
+    ret = scan("test/npm_simple_math", mode=mode, local_scan=True)
+    assert isinstance(ret, OSSBOM)
+    assert len(ret.get_components()) == 333
 
 
-@pytest.mark.parametrize("soft_error, expected_ret", [
-    ("True", 0),
-    ("False", 1)])
-def test_main_function_soft_error(monkeypatch, soft_error, expected_ret):
-    monkeypatch.setattr("sys.argv", ["script.py"])
-    monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math_no_exist")
-    monkeypatch.setenv("INPUT_MODE", "python-requirements")
-    monkeypatch.setenv("INPUT_DRY_RUN", "True")
-    monkeypatch.setenv("INPUT_SOFT_ERROR", soft_error)
+@pytest.mark.parametrize(["mode", "num_components"], [
+    ("yarn", 323),
+    ("auto", 324)
+])
+def test_scan_yarn_success(mode, num_components):
+    ret = scan("test/yarn_simple_math", mode=mode, local_scan=True)
+    assert isinstance(ret, OSSBOM)
+    assert len(ret.get_components()) == num_components
 
-    with pytest.raises(SystemExit) as excinfo:
-        main()
 
-    assert excinfo.value.code == expected_ret
+def test_scan_failure():
+    with pytest.raises(Exception) as excinfo:
+        scan("test/python_simple_math_no_exist", mode="python-requirements", local_scan=True)
+    assert "Package test/python_simple_math_no_exist does not exist" in str(excinfo.value)
+
+
+def test_scan_invalid_mode():
+    with pytest.raises(Exception) as excinfo:
+        scan("test/python_simple_math", mode="invalid-mode", local_scan=True)
+    assert "Invalid scanning method" in str(excinfo.value)
+
