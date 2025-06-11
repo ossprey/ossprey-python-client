@@ -1,7 +1,7 @@
 import os
 import sys
 
-from scan.virtualenv import VirtualEnv
+from ossprey.virtualenv import VirtualEnv
 
 
 def test_virtual_env_creation():

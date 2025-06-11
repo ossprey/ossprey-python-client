@@ -1,7 +1,8 @@
+import os
 import pytest
 
 from argparse import Namespace
-from scan.args import parse_arguments
+from ossprey.args import parse_arguments
 
 
 @pytest.fixture(autouse=True)
@@ -18,7 +19,7 @@ def set_ossprey_api_key(monkeypatch):
             {},
             Namespace(
                 url="https://example.com",
-                package="",
+                package=os.getcwd(),
                 dry_run=False,
                 github_comments=False,
                 verbose=True,
@@ -33,7 +34,7 @@ def set_ossprey_api_key(monkeypatch):
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "true"},
             Namespace(
                 url="https://env-url.com",
-                package="",
+                package=os.getcwd(),
                 dry_run=True,
                 github_comments=False,
                 verbose=False,
@@ -48,7 +49,7 @@ def set_ossprey_api_key(monkeypatch):
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "false"},
             Namespace(
                 url="https://cli-url.com",
-                package="",
+                package=os.getcwd(),
                 dry_run=True,
                 github_comments=False,
                 verbose=False,
@@ -72,6 +73,21 @@ def set_ossprey_api_key(monkeypatch):
                 soft_error=False,
             ),
         ),
+        # Test case 5: Empty input
+        (
+            ["script.py"],
+            {},
+            Namespace(
+                url="https://api.ossprey.com",
+                package=os.getcwd(),
+                dry_run=False,
+                github_comments=False,
+                verbose=False,
+                mode="auto",
+                api_key="SPECIAL_KEY",
+                soft_error=False,
+            ),
+        ),
     ],
 )
 def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
@@ -89,10 +105,31 @@ def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
     assert vars(args) == vars(expected)
 
 
-def test_mutually_exclusive_group_error(monkeypatch):
+def test_no_api_key_and_with_dryrun(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments
-    monkeypatch.setattr("sys.argv", ["script.py"])
+    monkeypatch.delenv("API_KEY")
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv", "--dry-run"])
+    args = parse_arguments()
+    print(args.api_key)
 
+    expected = Namespace(
+        url="https://api.ossprey.com",
+        package=os.getcwd(),
+        dry_run=True,
+        github_comments=False,
+        verbose=False,
+        mode="pipenv",
+        api_key=None,
+        soft_error=False)
+    
+    assert vars(args) == vars(expected)
+
+
+def test_no_api_key_and_no_dryrun(monkeypatch):
+    # Mock sys.argv with no mutually exclusive arguments
+    monkeypatch.delenv("API_KEY")
+
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv"])
     # Assert that the script raises a SystemExit error due to missing required arguments
     with pytest.raises(SystemExit) as excinfo:
         parse_arguments()

@@ -1,6 +1,6 @@
 import sys
 
-from scan.scan import main
+from ossprey.scan import main
 
 if __name__ == "__main__":
     ret = main()

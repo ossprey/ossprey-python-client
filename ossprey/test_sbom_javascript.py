@@ -1,12 +1,14 @@
 import pytest
 from unittest.mock import patch, mock_open
-from scan.sbom_javascript import (
+from ossprey.sbom_javascript import (
     exec_command, node_modules_directory_exists, find_package_json_files,
     get_all_node_modules_packages, package_lock_file_exists, get_all_package_lock_packages,
     package_json_file_exists, get_all_package_json_packages, run_npm_dry_run,
     get_all_npm_dry_run_packages, yarn_lock_file_exists, get_all_yarn_lock_packages,
-    run_yarn_install, get_all_yarn_list_packages, create_sbom_from_npm, create_sbom_from_yarn
+    run_yarn_install, get_all_yarn_list_packages, update_sbom_from_npm, update_sbom_from_yarn
 )
+
+from ossbom.model.ossbom import OSSBOM
 
 
 def test_exec_command():
@@ -53,7 +55,7 @@ def test_get_all_package_json_packages(tmp_path):
 
 
 def test_run_npm_dry_run():
-    with patch("scan.sbom_javascript.exec_command") as mock_exec_command:
+    with patch("ossprey.sbom_javascript.exec_command") as mock_exec_command:
         mock_exec_command.return_value = "add testpkg 1.0.0\n"
         assert get_all_npm_dry_run_packages(".") == [{"name": "testpkg", "version": "1.0.0"}]
 
@@ -69,21 +71,22 @@ def test_get_all_yarn_lock_packages(tmp_path):
 
 
 def test_run_yarn_install():
-    with patch("scan.sbom_javascript.exec_command") as mock_exec_command:
+    with patch("ossprey.sbom_javascript.exec_command") as mock_exec_command:
         mock_exec_command.return_value = "output"
         assert run_yarn_install(".") == "output"
 
 
 def test_get_all_yarn_list_packages():
-    with patch("scan.sbom_javascript.exec_command") as mock_exec_command:
+    with patch("ossprey.sbom_javascript.exec_command") as mock_exec_command:
         mock_exec_command.return_value = '{"data": {"trees": [{"name": "testpkg@1.0.0"}]}}'
         assert get_all_yarn_list_packages(".") == [{"name": "testpkg", "version": "1.0.0"}]
 
 
-def test_create_sbom_from_npm():
-    with patch("scan.sbom_javascript.get_all_npm_dry_run_packages") as mock_get_all_npm_dry_run_packages:
+def test_update_sbom_from_npm():
+    with patch("ossprey.sbom_javascript.get_all_npm_dry_run_packages") as mock_get_all_npm_dry_run_packages:
         mock_get_all_npm_dry_run_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
-        sbom = create_sbom_from_npm(".")
+        sbom = OSSBOM()
+        sbom = update_sbom_from_npm(sbom, ".")
         assert len(sbom.components) == 1
 
         # Get only entry in sbom.components and confirm it's name value is testpkg
@@ -91,10 +94,11 @@ def test_create_sbom_from_npm():
             assert component.name == "testpkg"
 
 
-def test_create_sbom_from_yarn():
-    with patch("scan.sbom_javascript.get_all_yarn_list_packages") as mock_get_all_yarn_list_packages:
+def test_update_sbom_from_yarn():
+    with patch("ossprey.sbom_javascript.get_all_yarn_list_packages") as mock_get_all_yarn_list_packages:
         mock_get_all_yarn_list_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
-        sbom = create_sbom_from_yarn(".")
+        sbom = OSSBOM()
+        sbom = update_sbom_from_yarn(sbom, ".")
         assert len(sbom.components) == 1
 
         # Get only entry in sbom.components and confirm it's name value is testpkg

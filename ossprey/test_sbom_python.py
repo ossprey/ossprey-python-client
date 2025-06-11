@@ -1,5 +1,5 @@
-from scan.sbom_python import create_sbom_from_env, create_sbom_from_requirements
-from scan.virtualenv import VirtualEnv
+from ossprey.sbom_python import create_sbom_from_env, create_sbom_from_requirements
+from ossprey.virtualenv import VirtualEnv
 
 
 def test_get_sbom():
