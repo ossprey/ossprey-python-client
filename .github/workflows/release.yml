@@ -1,0 +1,41 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag version (e.g., v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ossprey/cicd/python-release@main
+        with:
+          working-directory: ${{ env.WORKING_DIR }}
+          pypi-token: ${{ secrets.PYPI_TEST_TOKEN }}
+          tag: ${{ github.event.inputs.tag }}
+          test: 'true'
+
+  notify_on_failure:
+    needs: [release]
+    if: failure() && github.ref == 'refs/heads/main'  # Only triggers if previous steps fail and we are on the main branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Post to Slack on Failure
+        uses: ossprey/cicd/slack-alert@main
+        with:
+          slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          workflow-name: ${{ github.workflow }}
+          repo: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
