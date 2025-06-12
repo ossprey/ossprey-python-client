@@ -8,6 +8,9 @@ on:
         required: true
         type: string
 
+env:
+  TEST: 'true'
+
 permissions:
   contents: write
 
@@ -16,14 +19,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: ossprey/cicd/python-release@main
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          working-directory: ${{ env.WORKING_DIR }}
-          pypi-token: ${{ secrets.PYPI_TEST_TOKEN }}
-          tag: ${{ github.event.inputs.tag }}
-          test: 'true'
+          fetch-depth: 0
+
+      - name: Validate tag format
+        run: |
+          if [[ ! "${{ github.event.inputs.tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format. Use semantic versioning (e.g., v1.0.0)."
+            exit 1
+          fi
+
+      - name: Validate tag matches pyproject.toml version
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+          EXPECTED_TAG="v$VERSION"
+          if [[ "$EXPECTED_TAG" != "${{ github.event.inputs.tag }}" ]]; then
+            echo "Tag does not match pyproject.toml version ($EXPECTED_TAG)"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Run unit tests
+        run: |
+          poetry run pytest
+
+      - name: Tag and push
+        if: env.TEST != 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ github.event.inputs.tag }}
+          git push origin ${{ github.event.inputs.tag }}
+
+      - name: Build and Publish to PyPI
+        if: env.TEST != 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          poetry build
+          poetry run twine upload dist/*
+
+      - name: Test Build and Publish to PyPI
+        if: env.TEST == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_TOKEN }}
+        run: |
+          poetry build
+          poetry run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
   notify_on_failure:
     needs: [release]
@@ -33,9 +88,12 @@ jobs:
       contents: read
     steps:
       - name: Post to Slack on Failure
-        uses: ossprey/cicd/slack-alert@main
-        with:
-          slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          workflow-name: ${{ github.workflow }}
-          repo: ${{ github.repository }}
-          run-id: ${{ github.run_id }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN || '' }}
+        run: |
+            curl -X POST -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+              -H "Content-type: application/json" \
+              --data '{
+                "channel": "#alerts-github",
+                "text": "Pipeline Failed: ${{ github.workflow }} in ${{ github.repository }}: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Pipeline Run>"
+              }' https://slack.com/api/chat.postMessage
