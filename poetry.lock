@@ -1406,24 +1406,20 @@ files = [
 
 [[package]]
 name = "ossbom"
-version = "1.0.0"
+version = "1.0.3"
 description = "Main public API"
 optional = false
-python-versions = "^3.12"
+python-versions = "<4.0,>=3.12"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "ossbom-1.0.3-py3-none-any.whl", hash = "sha256:1e0a844a138a65484fe6bc64e3513bf55f6ea928d8097397c4bb6003c3838d2d"},
+    {file = "ossbom-1.0.3.tar.gz", hash = "sha256:67b23f49bd5250fac705633fd5cc656a30e11e244d5b7483a87a3fed98311738"},
+]
 
 [package.dependencies]
-cyclonedx-python-lib = {version = "^8.4.0", extras = ["json-validation"]}
-packageurl-python = "^0.16.0"
-poetry-plugin-export = "^1.9.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/ossprey/ossbom.git"
-reference = "main"
-resolved_reference = "617bf0647d98db70b086c01eead4bed5a389ab43"
+cyclonedx-python-lib = {version = ">=8.4.0,<9.0.0", extras = ["json-validation"]}
+packageurl-python = ">=0.16.0,<0.17.0"
+poetry-plugin-export = ">=1.9.0,<2.0.0"
 
 [[package]]
 name = "packageurl-python"
@@ -2768,4 +2764,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "5321b9a76b8bd1c46338f3e2843da7a6049f13dcfa7c23d630622c13399da137"
+content-hash = "546715673a1967f0aa57b4ceab096b0f01bfc9758e1eb514a361dda71f5319bd"
