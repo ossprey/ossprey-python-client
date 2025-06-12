@@ -9,7 +9,7 @@ on:
         type: string
 
 env:
-  TEST: 'true'
+  TEST: 'false'
 
 permissions:
   contents: write
