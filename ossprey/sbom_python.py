@@ -20,7 +20,7 @@ def get_cyclonedx_binary() -> str:
         return "cyclonedx-py"
 
     venv_bin = Path(sys.executable).parent
-    cmd = str(venv_bin / "cyclonedx-py")
+    cmd = os.path.join(venv_bin, "cyclonedx-py")
     if os.path.exists(cmd):
         return cmd
 
@@ -30,9 +30,10 @@ def get_cyclonedx_binary() -> str:
 def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
 
     try:
+        cmd = get_cyclonedx_binary()
         # This command generates an SBOM for the active virtual environment in JSON format
         result = subprocess.run(
-            ['cyclonedx-py', 'requirements', requirements_file],
+            [cmd, 'requirements', requirements_file],
             check=True,
             capture_output=True,
             text=True,
@@ -65,9 +66,10 @@ def update_sbom_from_requirements(ossbom: OSSBOM, requirements_file: str) -> OSS
 def create_sbom_from_env() -> OSSBOM:
 
     try:
+        cmd = get_cyclonedx_binary()
         # This command generates an SBOM for the active virtual environment in JSON format
         result = subprocess.run(
-            ['cyclonedx-py', 'environment'],
+            [cmd, 'environment'],
             check=True,
             capture_output=True,
             text=True,
