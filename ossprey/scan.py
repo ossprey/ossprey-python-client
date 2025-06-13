@@ -18,25 +18,6 @@ from ossbom.model.ossbom import OSSBOM
 
 logger = logging.getLogger(__name__)
 
-class ScanException(Exception):
-    """
-    Custom exception for scan errors.
-    """
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-    def __str__(self):
-        return f"ScanException: {self.message}"
-    
-class AutoScanException(ScanException):
-    pass
-
-class PackageNotFoundException(ScanException):
-    pass
-
-class InvalidModeException(ScanException):
-    pass
 
 def get_modes(directory):
     """
@@ -58,7 +39,9 @@ def get_modes(directory):
         "poetry.lock",
         "pyproject.toml"
     ]
-    if any()
+    if any(poetry_file in files for poetry_file in poetry_files):
+        # TODO handle poetry better in the future
+        modes.append("pipenv")
 
     npm_files = [
         "package-lock.json",
@@ -85,14 +68,14 @@ def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
         modes = get_modes(package_name)
         if len(modes) == 0:
             logging.error("No package manager found")
-            raise AutoScanException("No package manager found in the directory")
+            raise Exception("No package manager found in the directory")
     else:
         modes = [mode]
 
     # If package location doesn't exist, raise an error
     if not os.path.exists(package_name):
         logging.error(f"Package {package_name} does not exist")
-        raise PackageNotFoundException(f"Package {package_name} does not exist")
+        raise Exception(f"Package {package_name} does not exist")
 
     sbom = OSSBOM()
 
@@ -113,7 +96,7 @@ def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
     elif "yarn" in modes:
         sbom = update_sbom_from_yarn(sbom, package_name)
     else:
-        raise InvalidModeException("Invalid scanning method: " + str(modes))
+        raise Exception("Invalid scanning method: " + str(modes))
 
     # Update sbom to contain the local environment
     env = get_environment_details(package_name)
