@@ -1,8 +1,8 @@
 import requests
 import os
 import logging
+import shutil
 
-from github import Github
 from packageurl import PackageURL
 
 from ossbom.model.ossbom import OSSBOM
@@ -11,13 +11,20 @@ from ossbom.model.ossbom import OSSBOM
 logger = logging.getLogger(__name__)
 
 
+def can_report_to_github() -> bool:
+    return not shutil.which("git") is None
+
+
 def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github=False) -> bool:
     """
     Print the errors in a format that can be consumed by GitHub Actions
     """
     details = None
     if post_to_github:
-        details = create_github_details()
+        if not can_report_to_github():
+            logger.error("Git is not available, cannot post to GitHub")
+        else:
+            details = create_github_details()
 
     has_vulnerabilities = sbom.vulnerabilities is not None and len(sbom.vulnerabilities) > 0
 
@@ -85,6 +92,8 @@ class GitHubDetails:
 
 
 def create_github_details():
+    # Lazy import to avoid issues when running in context where GitHub API is not needed
+    from github import Github
 
     token = os.getenv('GITHUB_TOKEN')
     repo = os.getenv('GITHUB_REPOSITORY')

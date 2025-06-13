@@ -11,6 +11,7 @@ python = "^3.12"
 cyclonedx-bom = "^5.1.1"  
 cyclonedx-python-lib = {extras = ["json-validation"], version = "^8.4.0"}
 requests = "^2.32.3"
+pygithub = "^2.4.0"
 ossbom = "^1.0.3"
 packageurl-python = "^0.16.0"
 
