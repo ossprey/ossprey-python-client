@@ -119,6 +119,6 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     # Get the packages from the poetry.lock file
     purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
 
-    ossbom.add_components([Component(name=purl.name, version=purl.version, source="poetry", type="pypi") for purl in purls])
+    ossbom.add_components([Component.create(name=purl.name, version=purl.version, source="poetry", type="pypi") for purl in purls])
 
     return ossbom
