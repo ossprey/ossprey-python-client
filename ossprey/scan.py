@@ -35,6 +35,14 @@ def get_modes(directory):
     if "requirements.txt" in files:
         modes.append("python-requirements")
 
+    poetry_files = [
+        "poetry.lock",
+        "pyproject.toml"
+    ]
+    if any(poetry_file in files for poetry_file in poetry_files):
+        # TODO handle poetry better in the future
+        modes.append("pipenv")
+
     npm_files = [
         "package-lock.json",
         "package.json",
