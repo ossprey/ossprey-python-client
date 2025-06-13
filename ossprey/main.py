@@ -16,7 +16,6 @@ def main() -> None:
     init_logging(args.verbose)
 
     try:
-
         sbom = scan(
              args.package, 
              mode=args.mode, 

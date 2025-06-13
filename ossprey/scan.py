@@ -5,10 +5,8 @@ import sys
 
 from ossbom.converters.factory import SBOMConverterFactory
 
-from ossprey.args import parse_arguments
-from ossprey.github_actions_reporter import print_gh_action_errors
 from ossprey.log import init_logging
-from ossprey.sbom_python import update_sbom_from_requirements
+from ossprey.sbom_python import update_sbom_from_requirements, update_sbom_from_poetry
 from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
 from ossprey.ossprey import Ossprey
 from ossprey.virtualenv import VirtualEnv
@@ -41,7 +39,7 @@ def get_modes(directory):
     ]
     if any(poetry_file in files for poetry_file in poetry_files):
         # TODO handle poetry better in the future
-        modes.append("pipenv")
+        modes.append("poetry")
 
     npm_files = [
         "package-lock.json",
@@ -91,6 +89,8 @@ def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
         venv.exit()
     elif "python-requirements" in modes:
         sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
+    elif "poetry" in modes:
+        sbom = update_sbom_from_poetry(sbom, package_name)
     elif "npm" in modes:
         sbom = update_sbom_from_npm(sbom, package_name)
     elif "yarn" in modes:

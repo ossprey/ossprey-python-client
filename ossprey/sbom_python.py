@@ -2,11 +2,29 @@ import logging
 import subprocess
 import json
 import os
+import sys
+import shutil
+from pathlib import Path
+import tomllib
+from packageurl import PackageURL
 
 from ossbom.converters.factory import SBOMConverterFactory
 from ossbom.model.ossbom import OSSBOM
+from ossbom.model.component import Component
 
 logger = logging.getLogger(__name__)
+
+
+def get_cyclonedx_binary() -> str:
+    if shutil.which("cyclonedx-py"):
+        return "cyclonedx-py"
+
+    venv_bin = Path(sys.executable).parent
+    cmd = str(venv_bin / "cyclonedx-py")
+    if os.path.exists(cmd):
+        return cmd
+
+    raise FileNotFoundError("cyclonedx-py binary not found.")
 
 
 def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
@@ -70,3 +88,35 @@ def create_sbom_from_env() -> OSSBOM:
         logging.debug("--")
         logging.debug(result.stdout)
         raise e
+
+
+def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[str]:
+    with open(lockfile, "rb") as f:
+        lock_data = tomllib.load(f)
+
+    purls = []
+    for package in lock_data.get("package", []):
+        name = package["name"]
+        version = package["version"]
+        purl = PackageURL(type="pypi", name=name.lower(), version=version)
+        purls.append(purl)
+
+    return purls
+
+
+def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+
+    if not os.path.exists(os.path.join(package_dir, "poetry.lock")):
+        # Run poetry install to generate the poetry.lock file
+        try:
+            subprocess.run(['poetry', 'install'], cwd=package_dir, check=True)
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Error running poetry install: {e}")
+            raise e
+        
+    # Get the packages from the poetry.lock file
+    purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
+
+    ossbom.add_components([Component(name=purl.name, version=purl.version, source="poetry", type="pypi") for purl in purls])
+
+    return ossbom

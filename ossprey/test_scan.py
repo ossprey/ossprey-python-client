@@ -26,7 +26,24 @@ def test_scan_py_success_pipenv():
     assert [comp.name for comp in ret.get_components()] == result
 
 
-@pytest.mark.parametrize("mode", ["pipenv", "auto"])
+@pytest.mark.parametrize("mode", ["auto", "poetry"])
+def test_scan_poetry_success(mode):
+    ret = scan("test/poetry_simple_math", mode=mode, local_scan=True)
+    assert isinstance(ret, OSSBOM)
+
+    result = [  
+        'certifi',
+        'charset-normalizer',
+        'idna',
+        'numpy',
+        'requests',
+        'urllib3'
+    ]
+    assert [comp.name for comp in ret.get_components()] == result
+
+
+
+@pytest.mark.parametrize("mode", ["pipenv"])
 def test_scan_poetry_success_pipenv(mode):
     ret = scan("test/poetry_simple_math", mode=mode, local_scan=True)
     assert isinstance(ret, OSSBOM)
@@ -41,7 +58,6 @@ def test_scan_poetry_success_pipenv(mode):
         'urllib3'
     ]
     assert [comp.name for comp in ret.get_components()] == result
-
 
 @pytest.mark.parametrize("mode", ["npm", "auto"])
 def test_scan_npm_success(mode):
