@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ossprey"
-version = "1.0.9"
+version = "1.0.10"
 description = "Ossprey tooling to scan your software package, create an SBOM and then submit it to our service for malware scanning"
 authors = ["dreadn0ught"]
 license = "GPL-3.0"
