@@ -1,12 +1,26 @@
 import os
-from git import Repo
+import shutil
+import subprocess
 
 from ossbom.model.environment import Environment
 
 
 def get_current_git_branch(path="."):
-    repo = Repo(path, search_parent_directories=True)
-    return repo.active_branch.name
+
+    if shutil.which("git") is None:
+        return None  # git binary not available
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", path, "rev-parse", "--abbrev-ref", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+            text=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None  # not a git repo or other git error
 
 
 def get_codespace_environment(package_name):
