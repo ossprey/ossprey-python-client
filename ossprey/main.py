@@ -17,12 +17,12 @@ def main() -> None:
 
     try:
         sbom = scan(
-             args.package, 
-             mode=args.mode, 
-             local_scan=args.dry_run, 
-             url=args.url, 
-             api_key=args.api_key
-            )    
+            args.package, 
+            mode=args.mode, 
+            local_scan=args.dry_run, 
+            url=args.url, 
+            api_key=args.api_key
+        )
 
         if sbom:
 
@@ -46,6 +46,4 @@ def main() -> None:
         else:
             logger.error(f"Error: {e}")
             sys.exit(1)
-
-
 

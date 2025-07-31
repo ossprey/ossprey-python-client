@@ -52,7 +52,7 @@ class Ossprey:
 
         self.access_token = access_token
 
-        logger.debug("Authentication succeeded")
+        logger.debug("Authentication succeeded!")
 
     # This takes a python dictionary and submits it to the API
     def validate(self, minibom: dict) -> dict:
