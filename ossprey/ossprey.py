@@ -88,8 +88,9 @@ class Ossprey:
         logger.debug(f"JSON Submission: {json.dumps(json_bom)}")
 
         # Submit bom to API
+        json_data = {"sbom": json_bom}
         headers = {'Content-Type': 'application/json', 'Authorization': f"Bearer {self.access_token}"}
-        response = requests.post(url, headers=headers, json=json_bom)
+        response = requests.post(url, headers=headers, json=json_data)
 
         return response
         
