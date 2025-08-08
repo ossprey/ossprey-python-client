@@ -1,7 +1,7 @@
+from __future__ import annotations
 import json
 import logging
 import os
-import sys
 
 from ossbom.converters.factory import SBOMConverterFactory
 
@@ -15,18 +15,19 @@ from ossprey.environment import get_environment_details
 from ossbom.model.ossbom import OSSBOM
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
-def get_modes(directory):
+def get_modes(directory: str) -> list[str]:
     """
     Get the modes from the directory.
     :param directory: The directory to scan.
     :return: A list of modes.
     """
-
-    # get all files in the directory
+    
+    # get all files in the directory
     files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-    logging.debug(f"Files in directory: {files}")
+    logger.debug(f"Files in directory: {files}")
     modes = []
 
     # Check for requirements.txt
@@ -57,25 +58,35 @@ def get_modes(directory):
     return modes
 
 
-def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
+def scan(
+    package_name: str,
+    mode: str = "auto",
+    local_scan: bool = False,
+    url: str | None = None,
+    api_key: str | None = None,
+) -> OSSBOM:
 
     if mode == "auto":
-        logging.debug("Auto mode selected")
+        logger.debug("Auto mode selected")
         
         # Check the folder for files that map to different package managers
         modes = get_modes(package_name)
         if len(modes) == 0:
-            logging.error("No package manager found")
+            logger.error("No package manager found")
             raise Exception("No package manager found in the directory")
     else:
         modes = [mode]
 
-    # If package location doesn't exist, raise an error
+    logger.info(f"Scanning {package_name} with modes: {modes}")
+    # If package location doesn't exist, raise an error
     if not os.path.exists(package_name):
-        logging.error(f"Package {package_name} does not exist")
+        logger.error(f"Package {package_name} does not exist")
         raise Exception(f"Package {package_name} does not exist")
 
     sbom = OSSBOM()
+
+    if any(mode not in ["pipenv", "python-requirements", "poetry", "npm", "yarn"] for mode in modes) or len(modes) == 0:
+        raise Exception("Invalid scanning method: " + str(modes))
 
     if "pipenv" in modes:
         venv = VirtualEnv()
@@ -87,22 +98,25 @@ def scan(package_name, mode="auto", local_scan=False, url=None, api_key=None):
         sbom = update_sbom_from_requirements(sbom, requirements_file)
 
         venv.exit()
-    elif "python-requirements" in modes:
+
+    if "python-requirements" in modes:
         sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
-    elif "poetry" in modes:
+    
+    if "poetry" in modes:
         sbom = update_sbom_from_poetry(sbom, package_name)
-    elif "npm" in modes:
+    
+    if "npm" in modes:
         sbom = update_sbom_from_npm(sbom, package_name)
-    elif "yarn" in modes:
+    
+    if "yarn" in modes:
         sbom = update_sbom_from_yarn(sbom, package_name)
-    else:
-        raise Exception("Invalid scanning method: " + str(modes))
+    
 
     # Update sbom to contain the local environment
     env = get_environment_details(package_name)
     sbom.update_environment(env)
 
-    logging.info(f"Scanning {len(sbom.get_components())}")
+    logger.info(f"Scanning {len(sbom.get_components())}")
 
     if not local_scan:
         ossprey = Ossprey(url, api_key)

@@ -1,9 +1,12 @@
+from __future__ import annotations
 import argparse
 import os
+from argparse import Namespace
+from typing import Optional
 
 
 # Used to pull booleans from env vars
-def get_bool(value):
+def get_bool(value: Optional[str]) -> bool:
     return value.lower() in ("true", "1", "yes", "on") if value else False
 
 
@@ -12,7 +15,7 @@ def get_bool(value):
 # Please Note: Everything argument needs a default value otherwise tests will fail
 # @return: The parsed arguments
 ###
-def parse_arguments():
+def parse_arguments() -> Namespace:
 
     parser = argparse.ArgumentParser(description="API URL:")
     parser.add_argument(
@@ -22,9 +25,10 @@ def parse_arguments():
         default=os.getenv("INPUT_URL", "https://api.ossprey.com")
     )
     parser.add_argument(
-        "--package",
+        "--package", "--dir",
+        dest="package",
         type=str,
-        help="The package to scan",
+        help="The package or directory to scan",
         default=os.getenv("INPUT_PACKAGE", os.getcwd())
     )
     parser.add_argument(

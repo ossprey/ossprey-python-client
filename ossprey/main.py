@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import sys
 
@@ -17,12 +18,12 @@ def main() -> None:
 
     try:
         sbom = scan(
-             args.package, 
-             mode=args.mode, 
-             local_scan=args.dry_run, 
-             url=args.url, 
-             api_key=args.api_key
-            )    
+            args.package,
+            mode=args.mode,
+            local_scan=args.dry_run,
+            url=args.url,
+            api_key=args.api_key,
+        )
 
         if sbom:
 

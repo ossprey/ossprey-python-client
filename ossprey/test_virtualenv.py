@@ -1,10 +1,11 @@
+from __future__ import annotations
 import os
 import sys
 
 from ossprey.virtualenv import VirtualEnv
 
 
-def test_virtual_env_creation():
+def test_virtual_env_creation() -> None:
 
     venv = VirtualEnv()
 
@@ -12,7 +13,7 @@ def test_virtual_env_creation():
     assert os.path.isdir(os.path.join(venv.get_venv_dir(), 'bin'))
 
 
-def test_accessing_virtual_env():
+def test_accessing_virtual_env() -> None:
 
     venv = VirtualEnv()
     venv.enter()
@@ -26,7 +27,7 @@ def test_accessing_virtual_env():
     assert installed_packages[0]['name'] == 'pip'
 
 
-def test_package_installation():
+def test_package_installation() -> None:
     venv = VirtualEnv()
     venv.enter()
 
@@ -40,7 +41,7 @@ def test_package_installation():
     assert any(map(lambda x: x['name'] == 'numpy', installed_packages))
 
 
-def test_local_requirements_file():
+def test_local_requirements_file() -> None:
     venv = VirtualEnv()
     venv.enter()
     venv.install_package('numpy')
@@ -54,7 +55,7 @@ def test_local_requirements_file():
         assert lines[0].startswith('numpy')
 
 
-def test_local_installation():
+def test_local_installation() -> None:
     venv = VirtualEnv()
     venv.enter()
 

@@ -4,6 +4,8 @@
         "vscode": {
             "extensions": [
                 "GitHub.copilot",
+                "GitHub.copilot-chat", // Required for agent mode
+                "GitHub.copilot-mcp", // Adds MCP server UI
                 "ms-python.python",
                 "ms-python.vscode-pylance",
                 "njpwerner.autodocstring",
@@ -11,11 +13,26 @@
                 "ms-python.isort",
                 "ms-python.black-formatter",
                 "python-poetry.vscode-py-poetry",
-                "CoenraadS.bracket-pair-colorizer-2",
                 "aaron-bond.better-comments",
                 "github.vscode-github-actions",
+                "AmazonWebServices.aws-toolkit-vscode",
                 "ms-azuretools.vscode-docker"
-            ]
+            ],
+            "settings": {
+                /* kill VS Code’s own telemetry */
+                "telemetry.telemetryLevel": "off",
+                /* silence every AWS extension that honours the AWS Toolkit flag */
+                "aws.telemetry": false,
+                /* CodeWhisperer / Amazon Q (same engine) */
+                "codeWhispererTelemetry": false,
+                // delete any extra spaces at line-end
+                "files.trimTrailingWhitespace": true,
+                // delete indent that ends up on otherwise-empty lines
+                "editor.trimAutoWhitespace": true,
+                // format on save with Black (removes W29x, E30x, etc.)
+                "editor.formatOnSave": true,
+                "python.formatting.provider": "black"
+            }
         }
     },
     "postStartCommand": "bash .devcontainer/startup.sh"

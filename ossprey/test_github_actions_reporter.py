@@ -1,3 +1,4 @@
+from __future__ import annotations
 from unittest.mock import patch, MagicMock
 
 from ossprey.github_actions_reporter import print_gh_action_errors

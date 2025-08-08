@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import subprocess
 import json
@@ -86,13 +87,13 @@ def create_sbom_from_env() -> OSSBOM:
 
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running creating SBOM: {e}")
-        logging.debug(result.stderr)
+        logging.debug(e.stderr)
         logging.debug("--")
-        logging.debug(result.stdout)
+        logging.debug(e.stdout)
         raise e
 
 
-def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[str]:
+def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[PackageURL]:
     with open(lockfile, "rb") as f:
         lock_data = tomllib.load(f)
 
