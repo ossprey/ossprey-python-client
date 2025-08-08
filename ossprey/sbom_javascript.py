@@ -109,7 +109,6 @@ def get_all_npm_dry_run_packages(project_folder: str | os.PathLike[str]) -> List
 
     # Run the command
     result = run_npm_dry_run(project_folder)
-    print(result)
 
     # Parse the output
     for line in result.split("\n"):
@@ -125,7 +124,6 @@ def get_all_npm_dry_run_packages(project_folder: str | os.PathLike[str]) -> List
 
 
 def yarn_lock_file_exists(project_folder: str | os.PathLike[str]) -> bool:
-    print(project_folder)
     return os.path.isfile(os.path.join(project_folder, "yarn.lock"))
 
 
@@ -220,7 +218,6 @@ def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str]
 
     # get all packages in the package-lock.json file
     if yarn_lock_file_exists(project_folder):
-        print("AAA")
         components = get_all_yarn_lock_packages(project_folder)
         ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="yarn.lock") for component in components])
 
@@ -231,7 +228,5 @@ def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str]
     # yarn list
     components = get_all_yarn_list_packages(project_folder)
     ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="yarn list") for component in components])
-
-    print(json.dumps(ossbom.to_dict(), indent=4))
 
     return ossbom
