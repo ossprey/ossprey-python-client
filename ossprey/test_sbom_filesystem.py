@@ -94,7 +94,7 @@ def test_update_sbom_from_filesystem_aggregates_locations(
     # Find requests component and verify locations aggregated and metadata
     req = next(c for c in comps if c.name == "requests")
     assert req.version == "2.31.0"
-    assert req.type == "python"
+    assert req.type == "pypi"
     assert req.env == {DependencyEnv.PROD}
     assert req.source == {"pkg_packages"}
     assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])

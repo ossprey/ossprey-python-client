@@ -62,7 +62,7 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
 
     # Python
     for name, version, loc in _iter_python_pkgs(root):
-        add(buckets, "python", name, version, loc, "pkg_packages")
+        add(buckets, "pypi", name, version, loc, "pkg_packages")
 
     # NPM
     for name, version, loc in _iter_node_modules(root):
