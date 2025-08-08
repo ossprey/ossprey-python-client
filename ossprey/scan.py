@@ -15,7 +15,6 @@ from ossprey.environment import get_environment_details
 from ossbom.model.ossbom import OSSBOM
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def get_modes(directory: str) -> list[str]:

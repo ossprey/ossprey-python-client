@@ -50,10 +50,10 @@ def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
         return ossbom
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error running creating SBOM: {e}")
-        logging.debug(e.stderr)
-        logging.debug("--")
-        logging.debug(e.stdout)
+        logger.error(f"Error running creating SBOM: {e}")
+        logger.debug(e.stderr)
+        logger.debug("--")
+        logger.debug(e.stdout)
         raise e
 
 
@@ -86,10 +86,10 @@ def create_sbom_from_env() -> OSSBOM:
         return ossbom
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error running creating SBOM: {e}")
-        logging.debug(e.stderr)
-        logging.debug("--")
-        logging.debug(e.stdout)
+        logger.error(f"Error running creating SBOM: {e}")
+        logger.debug(e.stderr)
+        logger.debug("--")
+        logger.debug(e.stdout)
         raise e
 
 
@@ -114,7 +114,7 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
         try:
             subprocess.run(['poetry', 'install'], cwd=package_dir, check=True)
         except subprocess.CalledProcessError as e:
-            logging.error(f"Error running poetry install: {e}")
+            logger.error(f"Error running poetry install: {e}")
             raise e
         
     # Get the packages from the poetry.lock file
