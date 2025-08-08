@@ -4,6 +4,10 @@ import os
 import requests
 import time
 
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+from typing import Tuple, Final
+
 logger = logging.getLogger(__name__)
 
 # Global Cognito Constants
@@ -23,6 +27,7 @@ class Ossprey:
             raise Exception("API Key is null or empty")
         
         self.auth()
+        self.session = self.create_session()
 
     def auth(self):
         """Authenticate with API Refresh Key and retrieve a temporary access token
@@ -89,7 +94,7 @@ class Ossprey:
 
         # Submit bom to API
         headers = {'Content-Type': 'application/json', 'Authorization': f"Bearer {self.access_token}"}
-        response = requests.post(url, headers=headers, json=json_bom)
+        response = self.session.post(url, headers=headers, json=json_bom)
 
         return response
         
@@ -102,7 +107,7 @@ class Ossprey:
         for i in range(1, 20):
             time.sleep(i * i)
 
-            response = requests.get(url, headers=headers, params=params)
+            response = self.session.get(url, headers=headers, params=params)
             if response.status_code not in [200, 202]:
                 logger.error("Error returned when retrieving the results")
                 logger.debug(f"Status code: {response.status_code}")
@@ -118,3 +123,28 @@ class Ossprey:
 
         logger.error("Scan took too long to complete")
         raise Exception("Scan took too long to complete")
+
+    @staticmethod
+    def create_session() -> requests.Session:
+        """Return a Session that transparently retries on 503."""
+        
+        _RETRIES: Final = 5
+        _BACKOFF: Final = 1.0  # seconds
+        _STATUS_FORCELIST = (503,)
+        _ALLOWED_METHODS: Final[Tuple[str, ...]] = (
+            "GET",
+            "POST",
+        )
+
+        retry = Retry(
+            total=_RETRIES,
+            backoff_factor=_BACKOFF,
+            status_forcelist=_STATUS_FORCELIST,
+            allowed_methods=_ALLOWED_METHODS,
+            respect_retry_after_header=True,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        sess = requests.Session()
+        sess.mount("http://", adapter)
+        sess.mount("https://", adapter)
+        return sess
