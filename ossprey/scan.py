@@ -3,58 +3,19 @@ import json
 import logging
 import os
 
-from ossbom.converters.factory import SBOMConverterFactory
-
+from ossprey.environment import get_environment_details
 from ossprey.log import init_logging
+from ossprey.modes import get_modes, get_all_modes
 from ossprey.sbom_python import update_sbom_from_requirements, update_sbom_from_poetry
 from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
+from ossprey.sbom_filesystem import update_sbom_from_filesystem
 from ossprey.ossprey import Ossprey
 from ossprey.virtualenv import VirtualEnv
-from ossprey.environment import get_environment_details
 
+from ossbom.converters.factory import SBOMConverterFactory
 from ossbom.model.ossbom import OSSBOM
 
 logger = logging.getLogger(__name__)
-
-
-def get_modes(directory: str) -> list[str]:
-    """
-    Get the modes from the directory.
-    :param directory: The directory to scan.
-    :return: A list of modes.
-    """
-    
-    # get all files in the directory
-    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-    logger.debug(f"Files in directory: {files}")
-    modes = []
-
-    # Check for requirements.txt
-    if "requirements.txt" in files:
-        modes.append("python-requirements")
-
-    poetry_files = [
-        "poetry.lock",
-        "pyproject.toml"
-    ]
-    if any(poetry_file in files for poetry_file in poetry_files):
-        # TODO handle poetry better in the future
-        modes.append("poetry")
-
-    npm_files = [
-        "package-lock.json",
-        "package.json",
-        "node_modules"
-    ]
-    # Check for package.json
-    if any(npm_file in files for npm_file in npm_files):
-        modes.append("npm")
-
-    # Check for yarn.lock
-    if "yarn.lock" in files:
-        modes.append("yarn")
-
-    return modes
 
 
 def scan(
@@ -84,7 +45,7 @@ def scan(
 
     sbom = OSSBOM()
 
-    if any(mode not in ["pipenv", "python-requirements", "poetry", "npm", "yarn"] for mode in modes) or len(modes) == 0:
+    if any(mode not in get_all_modes() for mode in modes) or len(modes) == 0:
         raise Exception("Invalid scanning method: " + str(modes))
 
     if "pipenv" in modes:
@@ -100,16 +61,18 @@ def scan(
 
     if "python-requirements" in modes:
         sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
-    
+
     if "poetry" in modes:
         sbom = update_sbom_from_poetry(sbom, package_name)
-    
+
     if "npm" in modes:
         sbom = update_sbom_from_npm(sbom, package_name)
-    
+
     if "yarn" in modes:
         sbom = update_sbom_from_yarn(sbom, package_name)
-    
+
+    if "fs" in modes:
+        sbom = update_sbom_from_filesystem(sbom, package_name)
 
     # Update sbom to contain the local environment
     env = get_environment_details(package_name)

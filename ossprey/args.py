@@ -4,6 +4,7 @@ import os
 from argparse import Namespace
 from typing import Optional
 
+from ossprey.modes import get_all_modes
 
 # Used to pull booleans from env vars
 def get_bool(value: Optional[str]) -> bool:
@@ -54,7 +55,7 @@ def parse_arguments() -> Namespace:
     # Scanning methods
     parser.add_argument(
         '--mode',
-        choices=['pipenv', 'python-requirements', 'npm', 'yarn', 'auto'],
+        choices=get_all_modes(),
         help="Mode to generate the SBOM. Choose 'pipenv' to install the package or 'requirements' to provide a requirements file.",
         default=os.getenv("INPUT_MODE", 'auto')
     )

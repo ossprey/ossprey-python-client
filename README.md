@@ -7,6 +7,14 @@ Just run `pip install git+https://github.com/ossprey/ossprey-python-client` to i
 
 Then you can run it with `python -m scan --help`
 
+## Running tests
+
+Use Poetry to run the test suite so dependencies and the interpreter match the project:
+
+```
+poetry run python -m pytest
+```
+
 ## Requirements
 
 This package requires you are on python3.12 or above. Feel free to raise an issue if you need other support.

@@ -43,23 +43,24 @@ def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
             seen.add(nm)
 
 
+def add(buckets: Dict[Key, set[str]], ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:
+    key: Key = (ptype, name, version, source)
+    buckets.setdefault(key, set()).add(str(loc))
+
+
 def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OSSBOM:
     root = Path(project_folder).resolve()
 
     # Aggregate locations per (type, name, version)
     buckets: Dict[Key, set[str]] = {}
 
-    def add(ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:
-        key: Key = (ptype, name, version, source)
-        buckets.setdefault(key, set()).add(str(loc))
-
     # Python
     for name, version, loc in _iter_python_pkgs(root):
-        add("python", name, version, loc, "pkg_packages")
+        add(buckets, "python", name, version, loc, "pkg_packages")
 
     # NPM
     for name, version, loc in _iter_node_modules(root):
-        add("npm", name, version, loc, "node_modules")
+        add(buckets, "npm", name, version, loc, "node_modules")
 
     # Emit Components with all locations
     for (ptype, name, version, source), locs in buckets.items():
@@ -69,9 +70,9 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
                     name=name,
                     version=version,
                     type=ptype,
-                    env=DependencyEnv.PROD,
+                    env=DependencyEnv.PROD.value,
                     source=source,
-                    locations=sorted(locs),  # <-- list[str]
+                    location=sorted(locs),  # <-- list[str]
                 )
             ]
         )
