@@ -13,10 +13,20 @@ from ossprey.sbom_javascript import (
 
 Key = Tuple[str, str, str, str]  # (ptype, name, version, source)
 
+_ignore_dirs = ["/proc", "/sys", "/dev", "/var/log", "/var/cache"]
+
+
+def _iter_folders(root: Path) -> Iterable[Path]:
+    for p in root.rglob("*"):
+        if any(str(p).startswith(ignored) for ignored in _ignore_dirs):
+            continue
+        if p.is_dir():
+            yield p
+
 
 def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
-    for p in root.rglob("*"):
-        if p.is_dir() and (p.name.endswith(".dist-info") or p.name.endswith(".egg-info")):
+    for p in _iter_folders(root):
+        if p.name.endswith(".dist-info") or p.name.endswith(".egg-info"):
             name, ver = None, None
             for meta in ("METADATA", "PKG-INFO"):
                 f = p / meta
@@ -33,14 +43,10 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
 
 
 def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
-    seen: set[Path] = set()
-    for nm in root.rglob("node_modules"):
-        if any(parent in seen for parent in nm.parents):
-            continue
-        if node_modules_directory_exists(str(nm)):
+    for nm in _iter_folders(root):
+        if node_modules_directory_exists(nm.name):
             for c in get_all_node_modules_packages(str(nm)):
                 yield c["name"], c.get("version", ""), nm
-            seen.add(nm)
 
 
 def add(buckets: Dict[Key, set[str]], ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:

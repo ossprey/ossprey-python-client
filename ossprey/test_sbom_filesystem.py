@@ -36,6 +36,13 @@ def test_iter_python_pkgs_without_version(tmp_path: Path) -> None:
     assert results == [("nover", "", dist)]
 
 
+def test_iter_ignored_dirs() -> None:
+    restricted_path = Path("/proc")
+    results = list(fs._iter_folders(restricted_path))
+
+    assert results == []
+
+
 def test_iter_node_modules_uses_helpers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     nm1 = tmp_path / "a" / "node_modules"
     nm1.mkdir(parents=True)
