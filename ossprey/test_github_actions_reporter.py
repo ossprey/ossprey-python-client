@@ -13,7 +13,7 @@ def test_no_vulnerabilities():
     with patch("builtins.print") as mock_print, patch("ossprey.github_actions_reporter.append_to_github_output") as mock_append:
         result = print_gh_action_errors(sbom, package_path)
         
-        mock_print.assert_called_with("No vulnerabilities found")
+        mock_print.assert_called_with("No malware found")
         mock_append.assert_called_once_with(False, "false")
         assert result is True
 

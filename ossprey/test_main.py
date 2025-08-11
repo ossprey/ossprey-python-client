@@ -16,7 +16,7 @@ def test_main_function(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     print(captured.out)
-    assert "No vulnerabilities found" in captured.out
+    assert "No malware found" in captured.out
 
 
 @pytest.mark.parametrize("soft_error, expected_ret", [
