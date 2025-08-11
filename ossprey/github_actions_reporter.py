@@ -46,7 +46,7 @@ def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github: bool
                 post_comments_to_pull_request(details.token, details.repo, details.pull_number, details.commit_sha, message, file, line)
                 post_comment_to_github_summary(details.token, details.repo, details.pull_number, message)
     else:
-        print("No vulnerabilities found")
+        print("No malware found")
 
     append_to_github_output(has_vulnerabilities, str(has_vulnerabilities).lower())
 
