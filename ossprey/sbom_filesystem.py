@@ -67,6 +67,8 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
 
     # NPM
     for name, version, loc in _iter_node_modules(root):
+        print(name)
+        print(loc)
         add(buckets, "npm", name, version, loc, "node_modules")
 
     # Emit Components with all locations
