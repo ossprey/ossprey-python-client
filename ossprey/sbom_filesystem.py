@@ -44,10 +44,10 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
 
 def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
     for nm in _iter_folders(root):
-        if node_modules_directory_exists(nm.resolve()):
-            print(nm.resolve())
-            for c in get_all_node_modules_packages(nm.resolve()):
-                yield c["name"], c.get("version", ""), nm
+        path = nm.resolve()
+        if node_modules_directory_exists(path):
+            for c in get_all_node_modules_packages(path):
+                yield c["name"], c.get("version", ""), path
 
 
 def add(buckets: Dict[Key, set[str]], ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:
