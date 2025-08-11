@@ -98,3 +98,32 @@ def test_update_sbom_from_filesystem_aggregates_locations(
     assert req.env == {DependencyEnv.PROD}
     assert req.source == {"pkg_packages"}
     assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])
+
+
+def test_location_is_included_in_sbom(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    py_entries = [
+        ("requests", "2.31.0", tmp_path / "py1" / "requests-2.31.0.dist-info"),
+        ("requests", "2.31.0", tmp_path / "py2" / "requests-2.31.0.dist-info"),
+    ]
+    nm_entries = [
+        ("left-pad", "1.3.0", tmp_path / "a" / "node_modules"),
+    ]
+
+    monkeypatch.setattr(fs, "_iter_python_pkgs", lambda root: iter(py_entries))
+    monkeypatch.setattr(fs, "_iter_node_modules", lambda root: iter(nm_entries))
+
+    sbom = OSSBOM()
+    out = fs.update_sbom_from_filesystem(sbom, project_folder=str(tmp_path))
+
+    assert out is sbom
+    comps = list(sbom.components.values())
+    names = {c.name for c in comps}
+    assert names == {"requests", "left-pad"}
+
+    # Find requests component and verify locations aggregated and metadata
+    req = next(c for c in comps if c.name == "requests")
+    assert req.version == "2.31.0"
+    assert req.type == "pypi"
+    assert req.env == {DependencyEnv.PROD}
+    assert req.source == {"pkg_packages"}
+    assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])
