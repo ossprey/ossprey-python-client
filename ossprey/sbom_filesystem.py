@@ -71,6 +71,7 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
 
     # Emit Components with all locations
     for (ptype, name, version, source), locs in buckets.items():
+        print(name, locs)
         ossbom.add_components(
             [
                 Component.create(
