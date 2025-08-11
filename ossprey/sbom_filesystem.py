@@ -45,6 +45,7 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
 def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
     for nm in _iter_folders(root):
         if node_modules_directory_exists(nm.name):
+            print(nm.name)
             for c in get_all_node_modules_packages(str(nm)):
                 yield c["name"], c.get("version", ""), nm
 
