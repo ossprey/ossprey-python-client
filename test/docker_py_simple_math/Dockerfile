@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # Use official Python image
-FROM
+FROM python:3.12-slim AS base
 
 # Install build tools for dependencies if needed (libsodium for ed25519 may be required by solana-py)
 RUN apt-get update && apt-get install -y --no-install-recommends \
