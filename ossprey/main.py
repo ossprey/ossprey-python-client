@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import logging
 import sys
 
@@ -26,6 +27,10 @@ def main() -> None:
         )
 
         if sbom:
+
+            if args.output:
+                with open(args.output, "w") as f:
+                    json.dump(sbom.to_dict(), f, indent=2)
 
             # Process the result
             ret = print_gh_action_errors(sbom, args.package, args.github_comments)

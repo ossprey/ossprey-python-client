@@ -127,3 +127,76 @@ def test_location_is_included_in_sbom(monkeypatch: pytest.MonkeyPatch, tmp_path:
     assert req.env == {DependencyEnv.PROD}
     assert req.source == {"pkg_packages"}
     assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])
+
+
+def test_github_repo_from_direct_url_variants() -> None:
+    # git+https URL with .git suffix
+    d1 = {"url": "git+https://github.com/ossprey/example_malicious_python.git"}
+    assert fs._github_repo_from_direct_url(d1) == "ossprey/example_malicious_python"
+
+    # Plain https URL without .git
+    d2 = {"url": "https://github.com/pallets/flask"}
+    assert fs._github_repo_from_direct_url(d2) == "pallets/flask"
+
+    # Non-GitHub URL should return None
+    d3 = {"url": "https://gitlab.com/group/project.git"}
+    assert fs._github_repo_from_direct_url(d3) is None
+
+
+def test_github_version_from_direct_url_cases() -> None:
+    # Prefer requested branch/tag name when present and different from commit
+    d1 = {"vcs_info": {"requested_revision": "main", "commit_id": "abcdef0123456789"}}
+    assert fs._github_version_from_direct_url(d1) == ("latest", "main")
+
+    # Only commit present -> short commit, no branch
+    d2 = {"vcs_info": {"commit_id": "0123456789abcdef0123"}}
+    assert fs._github_version_from_direct_url(d2) == ("0123456789ab", None)
+
+    # Neither present -> default latest
+    d3 = {"vcs_info": {}}
+    assert fs._github_version_from_direct_url(d3) == ("latest", None)
+
+
+def test_python_pkg_to_component_tuple_github_mapping(tmp_path: Path) -> None:
+    loc = tmp_path / "pkg" / "example-0.1.0.dist-info"
+    direct = {
+        "url": "git+https://github.com/ossprey/example_malicious_python.git",
+        "vcs_info": {"requested_revision": "main", "commit_id": "deadbeefcafebabe"},
+    }
+    ptype, name, ver, source = fs._python_pkg_to_component_tuple(
+        "mathlib", "0.1.0", loc, direct
+    )
+    assert (ptype, name, ver, source) == (
+        "github",
+        "ossprey/example_malicious_python",
+        "latest",
+        "pkg_packages",
+    )
+
+
+def test_update_sbom_from_filesystem_emits_github_component(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Simulate a Python package installed from GitHub
+    loc = tmp_path / "site-packages" / "example-0.1.0.dist-info"
+    py_entries = [("example_malicious_python", "0.1.0", loc)]
+
+    def fake_get_direct_url(path: Path) -> dict | None:  # noqa: ARG001
+        return {
+            "url": "https://github.com/ossprey/example_malicious_python",
+            "vcs_info": {"requested_revision": "main"},
+        }
+
+    monkeypatch.setattr(fs, "_iter_python_pkgs", lambda root: iter(py_entries))
+    monkeypatch.setattr(fs, "_iter_node_modules", lambda root: iter(()))
+    monkeypatch.setattr(fs, "_get_direct_url", fake_get_direct_url)
+
+    sbom = OSSBOM()
+    fs.update_sbom_from_filesystem(sbom, project_folder=str(tmp_path))
+
+    comps = list(sbom.components.values())
+    assert len(comps) == 1
+    c = comps[0]
+    assert c.type == "github"
+    assert c.name == "ossprey/example_malicious_python"
+    assert c.version == "latest"
+    assert c.source == {"pkg_packages"}
+    assert c.location == [str(loc)]

@@ -87,4 +87,3 @@ def test_scan_invalid_mode() -> None:
     with pytest.raises(Exception) as excinfo:
         scan("test/python_simple_math", mode="invalid-mode", local_scan=True)
     assert "Invalid scanning method" in str(excinfo.value)
-

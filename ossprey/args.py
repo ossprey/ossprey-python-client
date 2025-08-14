@@ -6,6 +6,7 @@ from typing import Optional
 
 from ossprey.modes import get_all_modes
 
+
 # Used to pull booleans from env vars
 def get_bool(value: Optional[str]) -> bool:
     return value.lower() in ("true", "1", "yes", "on") if value else False
@@ -74,6 +75,14 @@ def parse_arguments() -> Namespace:
         action="store_true",
         help="If the scan causes an error don't stop the CICD process from continuing",
         default=get_bool(os.getenv("INPUT_SOFT_ERROR"))
+    )
+
+    # Output
+    parser.add_argument(
+        '-o', '--output',
+        type=str,
+        help="Output file for the SBOM",
+        default=os.getenv("INPUT_OUTPUT", None)
     )
 
     args = parser.parse_args()
