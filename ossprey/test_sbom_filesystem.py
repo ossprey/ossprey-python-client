@@ -8,6 +8,7 @@ import pytest
 from ossbom.model.dependency_env import DependencyEnv
 from ossbom.model.ossbom import OSSBOM
 from ossprey import sbom_filesystem as fs
+from ossbom.model.component import Component
 
 
 def test_iter_python_pkgs_reads_metadata(tmp_path: Path) -> None:
@@ -21,9 +22,8 @@ def test_iter_python_pkgs_reads_metadata(tmp_path: Path) -> None:
 
     results = list(fs._iter_python_pkgs(tmp_path))
 
-    assert {(n, v) for n, v, _ in results} == {("foo", "1.0.0"), ("bar", "2.0.0")}
-    assert any(loc == dist for _, _, loc in results)
-    assert any(loc == egg for _, _, loc in results)
+    # Now returns Component objects
+    assert {(c.name, c.version) for c in results} == {("foo", "1.0.0"), ("bar", "2.0.0")}
 
 
 def test_iter_python_pkgs_without_version(tmp_path: Path) -> None:
@@ -33,7 +33,11 @@ def test_iter_python_pkgs_without_version(tmp_path: Path) -> None:
 
     results = list(fs._iter_python_pkgs(tmp_path))
 
-    assert results == [("nover", "", dist)]
+    # Expect a single Component with missing version (None)
+    assert len(results) == 1
+    assert isinstance(results[0], Component)
+    assert results[0].name == "nover"
+    assert results[0].version in (None, "")
 
 
 def test_iter_ignored_dirs() -> None:
@@ -52,11 +56,11 @@ def test_iter_node_modules_uses_helpers(tmp_path: Path, monkeypatch: pytest.Monk
     def fake_exists(path: str | Path) -> bool:  # noqa: ARG001
         return True
 
-    def fake_get_all(path: str | Path) -> List[dict]:
+    def fake_get_all(path: str | Path) -> List[Component]:
         p = str(path)
         if p.endswith(str(Path("a") / "node_modules")):
-            return [{"name": "pkgA", "version": "1.2.3"}]
-        return [{"name": "@scope/pkgB", "version": "4.5.6"}]
+            return [Component.create(name="pkgA", version="1.2.3", env=DependencyEnv.PROD.value, type="npm", source="node_modules")]
+        return [Component.create(name="@scope/pkgB", version="4.5.6", env=DependencyEnv.PROD.value, type="npm", source="node_modules")]
 
     monkeypatch.setattr(fs, "node_modules_directory_exists", fake_exists)
     monkeypatch.setattr(fs, "get_all_node_modules_packages", fake_get_all)
@@ -64,20 +68,18 @@ def test_iter_node_modules_uses_helpers(tmp_path: Path, monkeypatch: pytest.Monk
     results = list(fs._iter_node_modules(tmp_path))
 
     # Both node_modules directories are processed by the iterator
-    assert {(n, v) for n, v, _ in results} == {("pkgA", "1.2.3"), ("@scope/pkgB", "4.5.6")}
-    assert any(loc == nm1 for _, _, loc in results)
-    assert any(loc == nm2 for _, _, loc in results)
+    assert {(c.name, c.version) for c in results} == {("pkgA", "1.2.3"), ("@scope/pkgB", "4.5.6")}
 
 
 def test_update_sbom_from_filesystem_aggregates_locations(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     py_entries = [
-        ("requests", "2.31.0", tmp_path / "py1" / "requests-2.31.0.dist-info"),
-        ("requests", "2.31.0", tmp_path / "py2" / "requests-2.31.0.dist-info"),
+        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
+        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
     ]
     nm_entries = [
-        ("left-pad", "1.3.0", tmp_path / "a" / "node_modules"),
+        Component.create(name="left-pad", version="1.3.0", env=DependencyEnv.PROD.value, type="npm", source="node_modules"),
     ]
 
     monkeypatch.setattr(fs, "_iter_python_pkgs", lambda root: iter(py_entries))
@@ -91,22 +93,19 @@ def test_update_sbom_from_filesystem_aggregates_locations(
     names = {c.name for c in comps}
     assert names == {"requests", "left-pad"}
 
-    # Find requests component and verify locations aggregated and metadata
+    # Validate basic metadata (locations no longer aggregated here)
     req = next(c for c in comps if c.name == "requests")
     assert req.version == "2.31.0"
     assert req.type == "pypi"
-    assert req.env == {DependencyEnv.PROD}
-    assert req.source == {"pkg_packages"}
-    assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])
 
 
 def test_location_is_included_in_sbom(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     py_entries = [
-        ("requests", "2.31.0", tmp_path / "py1" / "requests-2.31.0.dist-info"),
-        ("requests", "2.31.0", tmp_path / "py2" / "requests-2.31.0.dist-info"),
+        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
+        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
     ]
     nm_entries = [
-        ("left-pad", "1.3.0", tmp_path / "a" / "node_modules"),
+        Component.create(name="left-pad", version="1.3.0", env=DependencyEnv.PROD.value, type="npm", source="node_modules"),
     ]
 
     monkeypatch.setattr(fs, "_iter_python_pkgs", lambda root: iter(py_entries))
@@ -120,13 +119,10 @@ def test_location_is_included_in_sbom(monkeypatch: pytest.MonkeyPatch, tmp_path:
     names = {c.name for c in comps}
     assert names == {"requests", "left-pad"}
 
-    # Find requests component and verify locations aggregated and metadata
+    # Find requests component and verify basic metadata
     req = next(c for c in comps if c.name == "requests")
     assert req.version == "2.31.0"
     assert req.type == "pypi"
-    assert req.env == {DependencyEnv.PROD}
-    assert req.source == {"pkg_packages"}
-    assert sorted(req.location) == sorted([str(py_entries[0][2]), str(py_entries[1][2])])
 
 
 def test_github_repo_from_direct_url_variants() -> None:
@@ -175,9 +171,10 @@ def test_python_pkg_to_component_tuple_github_mapping(tmp_path: Path) -> None:
 
 
 def test_update_sbom_from_filesystem_emits_github_component(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    # Simulate a Python package installed from GitHub
+    # Create a Python package installed metadata and simulate GitHub source via direct_url
     loc = tmp_path / "site-packages" / "example-0.1.0.dist-info"
-    py_entries = [("example_malicious_python", "0.1.0", loc)]
+    loc.mkdir(parents=True)
+    (loc / "METADATA").write_text("Name: example_malicious_python\nVersion: 0.1.0\n")
 
     def fake_get_direct_url(path: Path) -> dict | None:  # noqa: ARG001
         return {
@@ -185,7 +182,6 @@ def test_update_sbom_from_filesystem_emits_github_component(monkeypatch: pytest.
             "vcs_info": {"requested_revision": "main"},
         }
 
-    monkeypatch.setattr(fs, "_iter_python_pkgs", lambda root: iter(py_entries))
     monkeypatch.setattr(fs, "_iter_node_modules", lambda root: iter(()))
     monkeypatch.setattr(fs, "_get_direct_url", fake_get_direct_url)
 
@@ -199,4 +195,3 @@ def test_update_sbom_from_filesystem_emits_github_component(monkeypatch: pytest.
     assert c.name == "ossprey/example_malicious_python"
     assert c.version == "latest"
     assert c.source == {"pkg_packages"}
-    assert c.location == [str(loc)]

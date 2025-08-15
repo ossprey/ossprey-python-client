@@ -12,6 +12,7 @@ from ossprey.sbom_javascript import (
 )
 
 from ossbom.model.ossbom import OSSBOM
+from ossbom.model.component import Component
 
 
 def test_exec_command() -> None:
@@ -34,7 +35,12 @@ def test_find_package_json_files(tmp_path: Path) -> None:
 def test_get_all_node_modules_packages(tmp_path: Path) -> None:
     (tmp_path / "node_modules").mkdir()
     (tmp_path / "node_modules" / "package.json").write_text('{"name": "testpkg", "version": "1.0.0"}')
-    assert get_all_node_modules_packages(tmp_path) == [{"name": "testpkg", "version": "1.0.0"}]
+    comps = get_all_node_modules_packages(tmp_path)
+    assert len(comps) == 1
+    c = comps[0]
+    assert isinstance(c, Component)
+    assert c.name == "testpkg"
+    assert c.version == "1.0.0"
 
 
 def test_package_lock_file_exists(tmp_path: Path) -> None:
@@ -44,7 +50,12 @@ def test_package_lock_file_exists(tmp_path: Path) -> None:
 
 def test_get_all_package_lock_packages(tmp_path: Path) -> None:
     (tmp_path / "package-lock.json").write_text('{"packages": {"": {}, "node_modules/testpkg": {"version": "1.0.0"}}}')
-    assert get_all_package_lock_packages(tmp_path) == [{"name": "testpkg", "version": "1.0.0"}]
+    comps = get_all_package_lock_packages(tmp_path)
+    assert len(comps) == 1
+    c = comps[0]
+    assert isinstance(c, Component)
+    assert c.name == "testpkg"
+    assert c.version == "1.0.0"
 
 
 def test_package_json_file_exists(tmp_path: Path) -> None:
@@ -70,7 +81,12 @@ def test_yarn_lock_file_exists(tmp_path: Path) -> None:
 
 def test_get_all_yarn_lock_packages(tmp_path: Path) -> None:
     (tmp_path / "yarn.lock").write_text('"testpkg@^1.0.0":\n  version "1.0.0"\n')
-    assert get_all_yarn_lock_packages(tmp_path) == [{"name": "testpkg", "version": "1.0.0"}]
+    comps = get_all_yarn_lock_packages(tmp_path)
+    assert len(comps) == 1
+    c = comps[0]
+    assert isinstance(c, Component)
+    assert c.name == "testpkg"
+    assert c.version == "1.0.0"
 
 
 def test_run_yarn_install() -> None:
@@ -82,7 +98,12 @@ def test_run_yarn_install() -> None:
 def test_get_all_yarn_list_packages() -> None:
     with patch("ossprey.sbom_javascript.exec_command") as mock_exec_command:
         mock_exec_command.return_value = '{"data": {"trees": [{"name": "testpkg@1.0.0"}]}}'
-        assert get_all_yarn_list_packages(".") == [{"name": "testpkg", "version": "1.0.0"}]
+    comps = get_all_yarn_list_packages(".")
+    assert len(comps) == 1
+    c = comps[0]
+    assert isinstance(c, Component)
+    assert c.name == "testpkg"
+    assert c.version == "1.0.0"
 
 
 #def test_update_sbom_from_npm() -> None:
@@ -99,7 +120,9 @@ def test_get_all_yarn_list_packages() -> None:
 
 def test_update_sbom_from_yarn() -> None:
     with patch("ossprey.sbom_javascript.get_all_yarn_list_packages") as mock_get_all_yarn_list_packages:
-        mock_get_all_yarn_list_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
+        mock_get_all_yarn_list_packages.return_value = [
+            Component.create(name="testpkg", version="1.0.0", env=None, type="npm", source="yarn list")
+        ]
         sbom = OSSBOM()
         sbom = update_sbom_from_yarn(sbom, ".")
         assert len(sbom.components) == 1
