@@ -15,7 +15,7 @@ WORKDIR /app/
 COPY javascript/package.json ./
 RUN npm install --omit=dev
 COPY javascript/src ./src
-
+RUN find /app/ -type d 
 
 # --- Scanner stage: does NOT contaminate what is scanned ---
 FROM python:3.12-alpine AS scanner
@@ -31,7 +31,7 @@ RUN  /bin/sh -lc '. /opt/venv/bin/activate && \
 RUN --mount=type=bind,from=base,source=/,target=/scanfs,ro \
     /bin/sh -lc '. /opt/venv/bin/activate && \
       mkdir -p /scan-result && \
-      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run --verbose '
+      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run '
 
 FROM scratch AS sbom-export
 # Export SBOM; retrieve to local disk with:

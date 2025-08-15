@@ -50,7 +50,7 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
 
 def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
     for nm in _iter_folders(root, "node_modules", dir_only=True):
-        path = nm.resolve()
+        path = nm.resolve().parent
         if node_modules_directory_exists(path):
             for c in get_all_node_modules_packages(path):
                 yield c["name"], c.get("version", ""), path
@@ -58,7 +58,6 @@ def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
 
 def _iter_package_lock_files(root: Path) -> Iterable[tuple[str, str, Path]]:
     for f in _iter_folders(root, "package-lock.json"):
-        print(f)
         packages = get_all_package_lock_packages(f.parent)
         for pkg in packages:
             yield pkg["name"], pkg["version"], f

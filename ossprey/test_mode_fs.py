@@ -12,13 +12,17 @@ def cleanup():
     subprocess.run(['docker', 'rm', '-f', 'simple_math_container'], check=False)
 
 
-def test_docker_build() -> None:
+@pytest.mark.parametrize("docker_folder", [
+    "../test/docker_js_simple_math",
+    "../test/docker_py_simple_math"
+])
+def test_docker_build(docker_folder) -> None:
     if shutil.which("docker") is None:
         pytest.skip("Docker not available in environment")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Run the build script from its directory
-        script_dir = os.path.join(os.path.dirname(__file__), '../test/docker_simple_math')
+        script_dir = os.path.join(os.path.dirname(__file__), docker_folder)
         build_script = os.path.join(script_dir, 'build.sh')
         subprocess.run(['bash', build_script, tmpdir], cwd=script_dir, check=True)
         sbom_path = os.path.join(tmpdir, 'sbom.json')

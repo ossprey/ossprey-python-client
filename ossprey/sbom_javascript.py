@@ -137,6 +137,9 @@ def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[d
     # Regex to match package entries and their version
     package_regex = r'^(?:"|)([^\s"][^"]*)(?:"|):\n\s+version\s+"([^"]+)"'
 
+    # Filter out all commented out lines first (starting with #)
+    content = "\n".join(line for line in content.splitlines() if not line.startswith("#"))
+
     # Find all matches in the yarn.lock content
     matches = re.finditer(package_regex, content, re.MULTILINE)
 
