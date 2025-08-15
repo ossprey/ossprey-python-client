@@ -13,7 +13,7 @@ cyclonedx-python-lib = {extras = ["json-validation"], version = "^8.4.0"}
 requests = "^2.32.3"
 pygithub = "^2.4.0"
 packageurl-python = "^0.16.0"
-ossbom = "^1.0.6"
+ossbom = "^1.0.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

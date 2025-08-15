@@ -11,23 +11,27 @@ from ossbom.model.ossbom import OSSBOM
 from ossprey.sbom_javascript import (
     get_all_node_modules_packages,
     node_modules_directory_exists,
+    get_all_package_lock_packages,
+    get_all_yarn_lock_packages
 )
+
+# TODO All this code needs a refactor with the sbom_python and sbom_javascript code
 
 Key = Tuple[str, str, str, str]  # (ptype, name, version, source)
 
 _ignore_dirs = ["/proc", "/sys", "/dev", "/var/log", "/var/cache"]
 
 
-def _iter_folders(root: Path) -> Iterable[Path]:
-    for p in root.rglob("*"):
+def _iter_folders(root: Path, wildcard: str = "*", dir_only: bool = False) -> Iterable[Path]:
+    for p in root.rglob(wildcard):
         if any(str(p).startswith(ignored) for ignored in _ignore_dirs):
             continue
-        if p.is_dir():
+        if p.is_dir() or not dir_only:
             yield p
 
 
 def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
-    for p in _iter_folders(root):
+    for p in _iter_folders(root, dir_only=True):
         if p.name.endswith(".dist-info") or p.name.endswith(".egg-info"):
             name, ver = None, None
             for meta in ("METADATA", "PKG-INFO"):
@@ -45,11 +49,26 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
 
 
 def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
-    for nm in _iter_folders(root):
+    for nm in _iter_folders(root, "node_modules", dir_only=True):
         path = nm.resolve()
         if node_modules_directory_exists(path):
             for c in get_all_node_modules_packages(path):
                 yield c["name"], c.get("version", ""), path
+
+
+def _iter_package_lock_files(root: Path) -> Iterable[tuple[str, str, Path]]:
+    for f in _iter_folders(root, "package-lock.json"):
+        print(f)
+        packages = get_all_package_lock_packages(f.parent)
+        for pkg in packages:
+            yield pkg["name"], pkg["version"], f
+
+
+def _iter_yarn_lock_files(root: Path) -> Iterable[tuple[str, str, Path]]:
+    for f in _iter_folders(root, "yarn.lock"):
+        packages = get_all_yarn_lock_packages(f.parent)
+        for pkg in packages:
+            yield pkg["name"], pkg["version"], f
 
 
 def add(buckets: Dict[Key, set[str]], ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:
@@ -142,19 +161,24 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
     for name, version, loc in _iter_node_modules(root):
         add(buckets, "npm", name, version, loc, "node_modules")
 
+    for name, version, loc in _iter_package_lock_files(root):
+        add(buckets, "npm", name, version, loc, "package-lock.json")
+
+    for name, version, loc in _iter_yarn_lock_files(root):
+        add(buckets, "npm", name, version, loc, "yarn.lock")
+
     # Emit Components with all locations
-    for (ptype, name, version, source), locs in buckets.items():
-        ossbom.add_components(
-            [
-                Component.create(
-                    name=name,
-                    version=version,
-                    type=ptype,
-                    env=DependencyEnv.PROD.value,
-                    source=source,
-                    location=sorted(locs),  # <-- list[str]
-                )
-            ]
+    components = [
+        Component.create(
+            name=name,
+            version=version,
+            type=ptype,
+            env=DependencyEnv.PROD.value,
+            source=source,
+            location=sorted(locs),  # <-- list[str]
         )
+        for (ptype, name, version, source), locs in buckets.items()
+    ]
+    ossbom.add_components(components)
 
     return ossbom
