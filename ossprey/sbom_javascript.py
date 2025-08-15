@@ -45,7 +45,7 @@ def find_package_json_files(base_path: str | os.PathLike[str]) -> List[str]:
     return package_files
 
 
-def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> List[dict]:
+def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
 
     packages = []
 
@@ -67,20 +67,26 @@ def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> Lis
                 # Extract the name and version for each package
                 packages.append({"name": name, "version": version})
 
-    return packages
+    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="yarn list") for component in packages]
+
+    return components
 
 
 def package_lock_file_exists(project_folder: str | os.PathLike[str]) -> bool:
     return os.path.isfile(os.path.join(project_folder, "package-lock.json"))
 
 
-def get_all_package_lock_packages(project_folder: str | os.PathLike[str]) -> List[dict]:
+def get_all_package_lock_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
     # Get all packages in the package-lock.json file
-
     with open(os.path.join(project_folder, "package-lock.json")) as f:
         data = json.load(f)
 
-        return [{"name": package.replace("node_modules/", ""), "version": data["packages"][package]["version"]} for package in data["packages"] if package != ""]
+    packages = [{"name": package.replace("node_modules/", ""), "version": data["packages"][package]["version"]} for package in data["packages"] if package != ""]
+
+    # TODO check if theyare github components and add them accordingly
+    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="package-lock.json") for component in packages]
+
+    return components
 
 
 def package_json_file_exists(project_folder: str | os.PathLike[str]) -> bool:
@@ -127,9 +133,8 @@ def yarn_lock_file_exists(project_folder: str | os.PathLike[str]) -> bool:
     return os.path.isfile(os.path.join(project_folder, "yarn.lock"))
 
 
-def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[dict]:
+def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
     # Get all packages in the yarn.lock file
-    package_data = []
     file_path = os.path.join(project_folder, "yarn.lock")
     with open(file_path, 'r') as f:
         content = f.read()
@@ -143,6 +148,7 @@ def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[d
     # Find all matches in the yarn.lock content
     matches = re.finditer(package_regex, content, re.MULTILINE)
 
+    package_data = []
     for match in matches:
         package_names = match.group(1)  # Full package spec (can include multiple package names)
         version = match.group(2)       # Version
@@ -161,14 +167,16 @@ def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[d
 
             package_data.append({"name": name, "version": version.strip()})
 
-    return package_data
+    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="yarn.lock") for component in package_data]
+
+    return components
 
 
 def run_yarn_install(project_folder: str | os.PathLike[str]) -> str:
     return exec_command("yarn install --check-files -non-interactive", str(project_folder))
 
 
-def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[dict]:
+def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
     # Get all packages from yarn list
 
     ret = []
@@ -184,7 +192,7 @@ def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[d
     # Extract the packages
     for package in data["data"]["trees"]:
         name_and_version = package["name"].rsplit("@", 1)
-        ret.append({"name": name_and_version[0], "version": name_and_version[1]})
+        ret.append(Component.create(name=name_and_version[0], version=name_and_version[1], env=DependencyEnv.PROD.value, type="npm", source="yarn list"))
 
     return ret
 
@@ -195,12 +203,12 @@ def update_sbom_from_npm(ossbom: OSSBOM, project_folder: str | os.PathLike[str])
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
         components = get_all_node_modules_packages(project_folder)
-        ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="node_modules") for component in components])
+        ossbom.add_components(components)
 
     # get all packages in the package-lock.json file
     if package_lock_file_exists(project_folder):
         components = get_all_package_lock_packages(project_folder)
-        ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="package-lock.json") for component in components])
+        ossbom.add_components(components)
 
     # npm install --dry-run --verbose - appears to be broken TODO fix
     # components = get_all_npm_dry_run_packages(project_folder)
@@ -217,12 +225,12 @@ def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str]
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
         components = get_all_node_modules_packages(project_folder)
-        ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="node_modules") for component in components])
+        ossbom.add_components(components)
 
     # get all packages in the package-lock.json file
     if yarn_lock_file_exists(project_folder):
         components = get_all_yarn_lock_packages(project_folder)
-        ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="yarn.lock") for component in components])
+        ossbom.add_components(components)
 
     # get all packages in the package.json file
     #if package_json_file_exists(project_folder):
@@ -230,6 +238,5 @@ def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str]
 
     # yarn list
     components = get_all_yarn_list_packages(project_folder)
-    ossbom.add_components([Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD, type="npm", source="yarn list") for component in components])
-
+    ossbom.add_components(components)
     return ossbom

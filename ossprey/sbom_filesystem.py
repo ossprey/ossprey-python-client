@@ -6,7 +6,6 @@ from typing import Dict, Iterable, Tuple
 from urllib.parse import urlparse
 
 from ossbom.model.component import Component
-from ossbom.model.dependency_env import DependencyEnv
 from ossbom.model.ossbom import OSSBOM
 from ossprey.sbom_javascript import (
     get_all_node_modules_packages,
@@ -16,8 +15,6 @@ from ossprey.sbom_javascript import (
 )
 
 # TODO All this code needs a refactor with the sbom_python and sbom_javascript code
-
-Key = Tuple[str, str, str, str]  # (ptype, name, version, source)
 
 _ignore_dirs = ["/proc", "/sys", "/dev", "/var/log", "/var/cache"]
 
@@ -31,6 +28,8 @@ def _iter_folders(root: Path, wildcard: str = "*", dir_only: bool = False) -> It
 
 
 def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
+
+    python_pkgs = []
     for p in _iter_folders(root, dir_only=True):
         if p.name.endswith(".dist-info") or p.name.endswith(".egg-info"):
             name, ver = None, None
@@ -45,34 +44,40 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
                         if name and ver:
                             break
             if name:
-                yield name, ver or "", p
+                python_pkgs.append((name, ver, p))
+    
+    components = []
+    for name, version, loc in python_pkgs:
+        direct_url = _get_direct_url(loc)
+        ptype, cname, cver, source = _python_pkg_to_component_tuple(name, version, loc, direct_url)
+        component = Component.create(
+            type=ptype,
+            name=cname,
+            version=cver,
+            source=source
+        )
+        components.append(component)
+    return components
 
 
-def _iter_node_modules(root: Path) -> Iterable[tuple[str, str, Path]]:
+def _iter_node_modules(root: Path) -> Iterable[Component]:
     for nm in _iter_folders(root, "node_modules", dir_only=True):
         path = nm.resolve().parent
         if node_modules_directory_exists(path):
             for c in get_all_node_modules_packages(path):
-                yield c["name"], c.get("version", ""), path
+                yield c
 
 
-def _iter_package_lock_files(root: Path) -> Iterable[tuple[str, str, Path]]:
+def _iter_package_lock_files(root: Path) -> Iterable[Component]:
     for f in _iter_folders(root, "package-lock.json"):
-        packages = get_all_package_lock_packages(f.parent)
-        for pkg in packages:
-            yield pkg["name"], pkg["version"], f
+        for c in get_all_package_lock_packages(f.parent):
+            yield c
 
 
-def _iter_yarn_lock_files(root: Path) -> Iterable[tuple[str, str, Path]]:
+def _iter_yarn_lock_files(root: Path) -> Iterable[Component]:
     for f in _iter_folders(root, "yarn.lock"):
-        packages = get_all_yarn_lock_packages(f.parent)
-        for pkg in packages:
-            yield pkg["name"], pkg["version"], f
-
-
-def add(buckets: Dict[Key, set[str]], ptype: str, name: str, version: str, loc: Path | str, source: str) -> None:
-    key: Key = (ptype, name, version, source)
-    buckets.setdefault(key, set()).add(str(loc))
+        for c in get_all_yarn_lock_packages(f.parent):
+            yield c
 
 
 def _get_direct_url(dist_info_dir: Path) -> dict | None:
@@ -147,37 +152,16 @@ def _python_pkg_to_component_tuple(
 def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OSSBOM:
     root = Path(project_folder).resolve()
 
-    # Aggregate locations per (type, name, version)
-    buckets: Dict[Key, set[str]] = {}
-
+    components = []
     # Python
-    for name, version, loc in _iter_python_pkgs(root):
-        direct_url = _get_direct_url(loc)
-        ptype, cname, cver, source = _python_pkg_to_component_tuple(name, version, loc, direct_url)
-        add(buckets, ptype, cname, cver, loc, source)
+    components.extend(_iter_python_pkgs(root))
 
     # NPM
-    for name, version, loc in _iter_node_modules(root):
-        add(buckets, "npm", name, version, loc, "node_modules")
+    components.extend(_iter_node_modules(root))
+    components.extend(_iter_package_lock_files(root))
+    components.extend(_iter_yarn_lock_files(root))
 
-    for name, version, loc in _iter_package_lock_files(root):
-        add(buckets, "npm", name, version, loc, "package-lock.json")
-
-    for name, version, loc in _iter_yarn_lock_files(root):
-        add(buckets, "npm", name, version, loc, "yarn.lock")
-
-    # Emit Components with all locations
-    components = [
-        Component.create(
-            name=name,
-            version=version,
-            type=ptype,
-            env=DependencyEnv.PROD.value,
-            source=source,
-            location=sorted(locs),  # <-- list[str]
-        )
-        for (ptype, name, version, source), locs in buckets.items()
-    ]
+    # Add to SBOM
     ossbom.add_components(components)
 
     return ossbom
