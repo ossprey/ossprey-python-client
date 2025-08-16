@@ -98,7 +98,7 @@ def test_run_yarn_install() -> None:
 def test_get_all_yarn_list_packages() -> None:
     with patch("ossprey.sbom_javascript.exec_command") as mock_exec_command:
         mock_exec_command.return_value = '{"data": {"trees": [{"name": "testpkg@1.0.0"}]}}'
-    comps = get_all_yarn_list_packages(".")
+        comps = get_all_yarn_list_packages(".")
     assert len(comps) == 1
     c = comps[0]
     assert isinstance(c, Component)

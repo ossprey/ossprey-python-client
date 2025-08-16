@@ -57,8 +57,9 @@ def test_iter_node_modules_uses_helpers(tmp_path: Path, monkeypatch: pytest.Monk
         return True
 
     def fake_get_all(path: str | Path) -> List[Component]:
-        p = str(path)
-        if p.endswith(str(Path("a") / "node_modules")):
+        # _iter_node_modules passes the parent directory of the node_modules folder
+        p = Path(path)
+        if p.name == "a":
             return [Component.create(name="pkgA", version="1.2.3", env=DependencyEnv.PROD.value, type="npm", source="node_modules")]
         return [Component.create(name="@scope/pkgB", version="4.5.6", env=DependencyEnv.PROD.value, type="npm", source="node_modules")]
 
@@ -75,8 +76,8 @@ def test_update_sbom_from_filesystem_aggregates_locations(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     py_entries = [
-        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
-        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
+    Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages", env=DependencyEnv.PROD.value),
+    Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages", env=DependencyEnv.PROD.value),
     ]
     nm_entries = [
         Component.create(name="left-pad", version="1.3.0", env=DependencyEnv.PROD.value, type="npm", source="node_modules"),
@@ -101,8 +102,8 @@ def test_update_sbom_from_filesystem_aggregates_locations(
 
 def test_location_is_included_in_sbom(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     py_entries = [
-        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
-        Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages"),
+    Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages", env=DependencyEnv.PROD.value),
+    Component.create(name="requests", version="2.31.0", type="pypi", source="pkg_packages", env=DependencyEnv.PROD.value),
     ]
     nm_entries = [
         Component.create(name="left-pad", version="1.3.0", env=DependencyEnv.PROD.value, type="npm", source="node_modules"),
