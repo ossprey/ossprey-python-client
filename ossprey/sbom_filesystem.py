@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import Dict, Iterable, Tuple
 from urllib.parse import urlparse
 
+from ossbom.model.dependency_env import DependencyEnv
 from ossbom.model.component import Component
 from ossbom.model.ossbom import OSSBOM
 from ossprey.sbom_javascript import (
     get_all_node_modules_packages,
     node_modules_directory_exists,
     get_all_package_lock_packages,
-    get_all_yarn_lock_packages
+    get_all_yarn_lock_packages,
 )
 
 # TODO All this code needs a refactor with the sbom_python and sbom_javascript code
@@ -19,7 +20,9 @@ from ossprey.sbom_javascript import (
 _ignore_dirs = ["/proc", "/sys", "/dev", "/var/log", "/var/cache"]
 
 
-def _iter_folders(root: Path, wildcard: str = "*", dir_only: bool = False) -> Iterable[Path]:
+def _iter_folders(
+    root: Path, wildcard: str = "*", dir_only: bool = False
+) -> Iterable[Path]:
     for p in root.rglob(wildcard):
         if any(str(p).startswith(ignored) for ignored in _ignore_dirs):
             continue
@@ -27,7 +30,7 @@ def _iter_folders(root: Path, wildcard: str = "*", dir_only: bool = False) -> It
             yield p
 
 
-def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
+def _iter_python_pkgs(root: Path) -> Iterable[Component]:
 
     python_pkgs = []
     for p in _iter_folders(root, dir_only=True):
@@ -45,16 +48,20 @@ def _iter_python_pkgs(root: Path) -> Iterable[tuple[str, str, Path]]:
                             break
             if name:
                 python_pkgs.append((name, ver, p))
-    
+
     components = []
     for name, version, loc in python_pkgs:
         direct_url = _get_direct_url(loc)
-        ptype, cname, cver, source = _python_pkg_to_component_tuple(name, version, loc, direct_url)
+        ptype, cname, cver, source = _python_pkg_to_component_tuple(
+            name, version, loc, direct_url
+        )
         component = Component.create(
             type=ptype,
             name=cname,
+            env=DependencyEnv.PROD.value,
             version=cver,
-            source=source
+            source=source,
+            location=[str(loc)],
         )
         components.append(component)
     return components
@@ -65,18 +72,21 @@ def _iter_node_modules(root: Path) -> Iterable[Component]:
         path = nm.resolve().parent
         if node_modules_directory_exists(path):
             for c in get_all_node_modules_packages(path):
+                c.add_location(str(path))
                 yield c
 
 
 def _iter_package_lock_files(root: Path) -> Iterable[Component]:
     for f in _iter_folders(root, "package-lock.json"):
         for c in get_all_package_lock_packages(f.parent):
+            c.add_location(str(f.parent))
             yield c
 
 
 def _iter_yarn_lock_files(root: Path) -> Iterable[Component]:
     for f in _iter_folders(root, "yarn.lock"):
         for c in get_all_yarn_lock_packages(f.parent):
+            c.add_location(str(f.parent))
             yield c
 
 
@@ -120,12 +130,12 @@ def _github_version_from_direct_url(direct_url: dict | None) -> tuple[str, str |
     vcs = (direct_url or {}).get("vcs_info") or {}
     requested = vcs.get("requested_revision")
     commit = vcs.get("commit_id")
-    if requested and (not commit or requested != commit):
-        # Prefer branch/tag name as qualifier, keep version stable as 'latest'
-        return "latest", requested
     if commit:
-        return commit[:12], None
-    return "latest", None
+        return commit[:12], requested
+    elif requested:
+        return "latest", requested
+    else:
+        return "latest", "main"
 
 
 def _python_pkg_to_component_tuple(
@@ -161,7 +171,7 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
     components.extend(_iter_package_lock_files(root))
     components.extend(_iter_yarn_lock_files(root))
 
-    # Add to SBOM
+    # Add to SBOM
     ossbom.add_components(components)
 
     return ossbom

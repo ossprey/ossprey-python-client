@@ -1358,14 +1358,14 @@ files = [
 
 [[package]]
 name = "ossbom"
-version = "1.0.6"
+version = "1.0.8"
 description = "Main public API"
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "ossbom-1.0.6-py3-none-any.whl", hash = "sha256:27139ed30f567c80c16d2afaccc4719069d9fcb907a9995371746a03497dfe68"},
-    {file = "ossbom-1.0.6.tar.gz", hash = "sha256:70a0860b855f74bdb346d1dbcf134e94b1337c17f1417b2a85dae10186a9e0d3"},
+    {file = "ossbom-1.0.8-py3-none-any.whl", hash = "sha256:e8b3aef4ab708f269a99f1f9e04d8603dd73f886360da9a0205b377808e68137"},
+    {file = "ossbom-1.0.8.tar.gz", hash = "sha256:43925baebb3d043719999ba8dcf1b7acc6a7e53cb1ff3d23dc35b417bc989b6a"},
 ]
 
 [package.dependencies]
@@ -2667,4 +2667,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2bbf37acf1f318d4efc741d24cdcccd1367bf0b9c95958cb1ee7e68baf099418"
+content-hash = "cc16ce603db6de6ffb6025cd0aa10fe324ab2a0bca6c262b6312ce8df3ab4283"

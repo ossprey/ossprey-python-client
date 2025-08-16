@@ -4,6 +4,7 @@ from unittest.mock import patch, mock_open
 from typing import Any
 from pathlib import Path
 from ossprey.sbom_javascript import (
+    GitResolved,
     exec_command, node_modules_directory_exists, find_package_json_files,
     get_all_node_modules_packages, package_lock_file_exists, get_all_package_lock_packages,
     package_json_file_exists, get_all_package_json_packages, run_npm_dry_run,
@@ -49,6 +50,17 @@ def test_package_lock_file_exists(tmp_path: Path) -> None:
 
 
 def test_get_all_package_lock_packages(tmp_path: Path) -> None:
+    (tmp_path / "package-lock.json").write_text('{"packages": {"node_modules/testpkg": {"version": "1.0.0"}}}')
+    comps = get_all_package_lock_packages(tmp_path)
+    assert len(comps) == 1
+    c = comps[0]
+    assert isinstance(c, Component)
+    assert c.name == "testpkg"
+    assert c.version == "1.0.0"
+    assert c.source == {"package-lock.json"}
+
+
+def test_get_all_package_lock_packages_ignore_blanks(tmp_path: Path) -> None:
     (tmp_path / "package-lock.json").write_text('{"packages": {"": {}, "node_modules/testpkg": {"version": "1.0.0"}}}')
     comps = get_all_package_lock_packages(tmp_path)
     assert len(comps) == 1
@@ -56,6 +68,7 @@ def test_get_all_package_lock_packages(tmp_path: Path) -> None:
     assert isinstance(c, Component)
     assert c.name == "testpkg"
     assert c.version == "1.0.0"
+    assert c.source == {"package-lock.json"}
 
 
 def test_package_json_file_exists(tmp_path: Path) -> None:
@@ -106,7 +119,7 @@ def test_get_all_yarn_list_packages() -> None:
     assert c.version == "1.0.0"
 
 
-#def test_update_sbom_from_npm() -> None:
+# def test_update_sbom_from_npm() -> None:
 #        mock_get_all_npm_dry_run_packages.return_value = [{"name": "testpkg", "version": "1.0.0"}]
 #    with patch("ossprey.sbom_javascript.get_all_npm_dry_run_packages") as mock_get_all_npm_dry_run_packages:
 #        sbom = OSSBOM()
@@ -130,3 +143,33 @@ def test_update_sbom_from_yarn() -> None:
         # Get only entry in sbom.components and confirm it's name value is testpkg
         for component in sbom.components.values():
             assert component.name == "testpkg"
+
+
+# GitResolved tests
+def test_gitresolved_parses_https_url() -> None:
+    gr = GitResolved("git+https://github.com/pallets/flask.git#abcdef0123")
+    assert gr.get_type() == "github"
+    assert gr.get_version() == "abcdef0123"
+    assert gr.url == "https://github.com/pallets/flask.git"
+    assert gr.get_name() == "pallets/flask"
+
+
+def test_gitresolved_parses_ssh_url() -> None:
+    gr = GitResolved("git+ssh://git@github.com/ossprey/example_malicious_javascript.git#deadbeef")
+    assert gr.get_type() == "github"
+    assert gr.get_version() == "deadbeef"
+    assert gr.url == "ssh://git@github.com/ossprey/example_malicious_javascript.git"
+    assert gr.get_name() == "ossprey/example_malicious_javascript"
+
+
+def test_gitresolved_raises_without_git_prefix() -> None:
+    with pytest.raises(ValueError):
+        GitResolved("https://github.com/org/repo.git#123")
+
+
+def test_gitresolved_without_dot_git_suffix() -> None:
+    gr = GitResolved("git+https://github.com/org/repo#main")
+    assert gr.get_type() == "github"
+    assert gr.url == "https://github.com/org/repo"
+    assert gr.get_name() == "org/repo"
+    assert gr.get_version() == "main"

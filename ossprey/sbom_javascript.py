@@ -15,6 +15,32 @@ from ossbom.model.dependency_env import DependencyEnv
 logger = logging.getLogger(__name__)
 
 
+class GitResolve:
+
+    """
+        Example github resolved value:
+        "git+ssh://git@github.com/ossprey/example_malicious_javascript.git#cd3954ceeb60dd14abc065c909d9c9e1ce9d34e5",
+    """
+
+    def __init__(self, resolved):
+        self.resolved = resolved
+        if not self.resolved.startswith("git+"):
+            raise ValueError("Invalid Git resolved value")
+
+        self.url = self.resolved.split("+", 1)[1].split("#", 1)[0]
+        self.version = self.resolved.split("#", 1)[1]
+        self.name = self.url.split("/", 3)[-1].split(".git")[0]
+
+    def get_type(self):
+        return "github"
+
+    def get_name(self):
+        return self.name
+    
+    def get_version(self):
+        return self.version
+
+
 def exec_command(command: str, cwd: str | None = None) -> str:
     try:
         # Run the yarn command with the specified cwd
@@ -67,7 +93,7 @@ def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> Lis
                 # Extract the name and version for each package
                 packages.append({"name": name, "version": version})
 
-    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="yarn list") for component in packages]
+    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="node_modules") for component in packages]
 
     return components
 
@@ -81,10 +107,39 @@ def get_all_package_lock_packages(project_folder: str | os.PathLike[str]) -> Lis
     with open(os.path.join(project_folder, "package-lock.json")) as f:
         data = json.load(f)
 
-    packages = [{"name": package.replace("node_modules/", ""), "version": data["packages"][package]["version"]} for package in data["packages"] if package != ""]
-
-    # TODO check if theyare github components and add them accordingly
-    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="package-lock.json") for component in packages]
+    components = []
+    for name, package in data["packages"].items():
+        name = name.replace("node_modules/", "")
+        if name == "":
+            continue
+        version = package["version"]
+        source = "package-lock.json"
+        env = DependencyEnv.PROD.value
+        is_github = package.get("resolved", "").find("github.com") != -1
+        if is_github:
+            # Create a github component
+            type = "github"
+            git_details = GitResolve(package["resolved"])
+            name = git_details.get_name()
+            version = git_details.get_version()
+            component = Component.create(
+                name=name,
+                version=version,
+                env=env,
+                type=type,
+                source=source
+            )
+        else:
+            # Create an NPM package
+            type = "npm"
+            component = Component.create(
+                name=name,
+                version=version,
+                env=env,
+                type=type,
+                source=source
+            )
+        components.append(component)
 
     return components
 
