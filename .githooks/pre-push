@@ -1,4 +1,9 @@
-# To install run cp .githooks/pre-push .git/hooks/pre-push
+#!/usr/bin/env bash
+# To install run: cp .githooks/pre-push .git/hooks/pre-push
+
+# Exit with code 1 if any command fails
+set -euo pipefail
+trap 'exit 1' ERR
 
 # Run unit tests
 poetry run pytest
