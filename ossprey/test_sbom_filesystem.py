@@ -313,14 +313,14 @@ def test__iter_python_pkgs_validity(tmp_path: Path) -> None:
 
     assert len(results) == 2
     assert all(isinstance(r, Component) for r in results)
-    c = results[0]
+    c = next(r for r in results if r.name == "valid_pkg")
     assert c.name == "valid_pkg"
     assert c.version == "1.0.0"
     assert c.type == "pypi"
     assert c.source == {"pkg_packages"}
     assert c.location == [str(dist)]
 
-    d = results[1]
+    d = next(r for r in results if r.name == "ossprey/valid_pkg_github")
     assert d.name == "ossprey/valid_pkg_github"
     assert d.version == "deadbeefcafebabe"[:12]
     assert d.type == "github"
