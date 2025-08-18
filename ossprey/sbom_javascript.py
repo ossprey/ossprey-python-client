@@ -16,10 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class GitResolve:
-
     """
-        Example github resolved value:
-        "git+ssh://git@github.com/ossprey/example_malicious_javascript.git#cd3954ceeb60dd14abc065c909d9c9e1ce9d34e5",
+    Example github resolved value:
+    "git+ssh://git@github.com/ossprey/example_malicious_javascript.git#cd3954ceeb60dd14abc065c909d9c9e1ce9d34e5",
     """
 
     def __init__(self, resolved):
@@ -36,7 +35,7 @@ class GitResolve:
 
     def get_name(self):
         return self.name
-    
+
     def get_version(self):
         return self.version
 
@@ -49,8 +48,8 @@ def exec_command(command: str, cwd: str | None = None) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=cwd if cwd else None,  # Explicitly set to None if not used
-            check=True
+            cwd=cwd if cwd else None,  # Explicitly set to None if not used
+            check=True,
         )
         # Parse the output
         return result.stdout
@@ -71,20 +70,24 @@ def find_package_json_files(base_path: str | os.PathLike[str]) -> List[str]:
     return package_files
 
 
-def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
+def get_all_node_modules_packages(
+    project_folder: str | os.PathLike[str],
+) -> List[Component]:
 
     packages = []
 
     # Get all instances of the package.json file in the node_modules directory
-    package_files = find_package_json_files(os.path.join(project_folder, "node_modules"))
+    package_files = find_package_json_files(
+        os.path.join(project_folder, "node_modules")
+    )
 
     # Add all packages to the list
     for package_file in package_files:
         with open(package_file) as f:
             data = json.load(f)
             if "name" in data and "version" in data:
-                name = data['name']
-                version = data['version']
+                name = data["name"]
+                version = data["version"]
 
                 # Make sure name is valid
                 if name.startswith("<%="):
@@ -93,7 +96,16 @@ def get_all_node_modules_packages(project_folder: str | os.PathLike[str]) -> Lis
                 # Extract the name and version for each package
                 packages.append({"name": name, "version": version})
 
-    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="node_modules") for component in packages]
+    components = [
+        Component.create(
+            name=component["name"],
+            version=component["version"],
+            env=DependencyEnv.PROD.value,
+            type="npm",
+            source="node_modules",
+        )
+        for component in packages
+    ]
 
     return components
 
@@ -102,7 +114,9 @@ def package_lock_file_exists(project_folder: str | os.PathLike[str]) -> bool:
     return os.path.isfile(os.path.join(project_folder, "package-lock.json"))
 
 
-def get_all_package_lock_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
+def get_all_package_lock_packages(
+    project_folder: str | os.PathLike[str],
+) -> List[Component]:
     # Get all packages in the package-lock.json file
     with open(os.path.join(project_folder, "package-lock.json")) as f:
         data = json.load(f)
@@ -123,21 +137,13 @@ def get_all_package_lock_packages(project_folder: str | os.PathLike[str]) -> Lis
             name = git_details.get_name()
             version = git_details.get_version()
             component = Component.create(
-                name=name,
-                version=version,
-                env=env,
-                type=type,
-                source=source
+                name=name, version=version, env=env, type=type, source=source
             )
         else:
-            # Create an NPM package
+            # Create an NPM package
             type = "npm"
             component = Component.create(
-                name=name,
-                version=version,
-                env=env,
-                type=type,
-                source=source
+                name=name, version=version, env=env, type=type, source=source
             )
         components.append(component)
 
@@ -153,8 +159,16 @@ def get_all_package_json_packages(project_folder: str | os.PathLike[str]) -> Lis
     with open(os.path.join(project_folder, "package.json")) as f:
         data = json.load(f)
 
-        deps = [{"name": dependency, "version": data["dependencies"][dependency]} for dependency in data["dependencies"]]
-        deps.extend([{"name": dependency, "version": data["devDependencies"][dependency]} for dependency in data["devDependencies"]])
+        deps = [
+            {"name": dependency, "version": data["dependencies"][dependency]}
+            for dependency in data["dependencies"]
+        ]
+        deps.extend(
+            [
+                {"name": dependency, "version": data["devDependencies"][dependency]}
+                for dependency in data["devDependencies"]
+            ]
+        )
 
     return deps
 
@@ -188,25 +202,29 @@ def yarn_lock_file_exists(project_folder: str | os.PathLike[str]) -> bool:
     return os.path.isfile(os.path.join(project_folder, "yarn.lock"))
 
 
-def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
+def get_all_yarn_lock_packages(
+    project_folder: str | os.PathLike[str],
+) -> List[Component]:
     # Get all packages in the yarn.lock file
     file_path = os.path.join(project_folder, "yarn.lock")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     # Regex to match package entries and their version
     package_regex = r'^(?:"|)([^\s"][^"]*)(?:"|):\n\s+version\s+"([^"]+)"'
-
     # Filter out all commented out lines first (starting with #)
-    content = "\n".join(line for line in content.splitlines() if not line.startswith("#"))
-
+    content = "\n".join(
+        line for line in content.splitlines() if not line.strip().startswith("#")
+    )
     # Find all matches in the yarn.lock content
     matches = re.finditer(package_regex, content, re.MULTILINE)
 
     package_data = []
     for match in matches:
-        package_names = match.group(1)  # Full package spec (can include multiple package names)
-        version = match.group(2)       # Version
+        package_names = match.group(
+            1
+        )  # Full package spec (can include multiple package names)
+        version = match.group(2)  # Version
 
         # Split package names if there are multiple (comma-separated)
         for name in package_names.split(", "):
@@ -222,16 +240,29 @@ def get_all_yarn_lock_packages(project_folder: str | os.PathLike[str]) -> List[C
 
             package_data.append({"name": name, "version": version.strip()})
 
-    components = [Component.create(name=component["name"], version=component["version"], env=DependencyEnv.PROD.value, type="npm", source="yarn.lock") for component in package_data]
+    components = [
+        Component.create(
+            name=component["name"],
+            version=component["version"],
+            env=DependencyEnv.PROD.value,
+            type="npm",
+            source="yarn.lock",
+        )
+        for component in package_data
+    ]
 
     return components
 
 
 def run_yarn_install(project_folder: str | os.PathLike[str]) -> str:
-    return exec_command("yarn install --check-files -non-interactive", str(project_folder))
+    return exec_command(
+        "yarn install --check-files -non-interactive", str(project_folder)
+    )
 
 
-def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[Component]:
+def get_all_yarn_list_packages(
+    project_folder: str | os.PathLike[str],
+) -> List[Component]:
     # Get all packages from yarn list
 
     ret = []
@@ -239,7 +270,7 @@ def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[C
     # Run the command
     result = exec_command("yarn list --json --no-progress", str(project_folder))
 
-    list_json = result.strip().split('\n')[-1]
+    list_json = result.strip().split("\n")[-1]
 
     # Parse the output
     data = json.loads(list_json)
@@ -247,13 +278,23 @@ def get_all_yarn_list_packages(project_folder: str | os.PathLike[str]) -> List[C
     # Extract the packages
     for package in data["data"]["trees"]:
         name_and_version = package["name"].rsplit("@", 1)
-        ret.append(Component.create(name=name_and_version[0], version=name_and_version[1], env=DependencyEnv.PROD.value, type="npm", source="yarn list"))
+        ret.append(
+            Component.create(
+                name=name_and_version[0],
+                version=name_and_version[1],
+                env=DependencyEnv.PROD.value,
+                type="npm",
+                source="yarn list",
+            )
+        )
 
     return ret
 
 
 # Global functions
-def update_sbom_from_npm(ossbom: OSSBOM, project_folder: str | os.PathLike[str]) -> OSSBOM:
+def update_sbom_from_npm(
+    ossbom: OSSBOM, project_folder: str | os.PathLike[str]
+) -> OSSBOM:
 
     # get all versions of a package in the node_modules directory
     if node_modules_directory_exists(project_folder):
@@ -272,7 +313,9 @@ def update_sbom_from_npm(ossbom: OSSBOM, project_folder: str | os.PathLike[str])
     return ossbom
 
 
-def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str], run_install: bool = False) -> OSSBOM:
+def update_sbom_from_yarn(
+    ossbom: OSSBOM, project_folder: str | os.PathLike[str], run_install: bool = False
+) -> OSSBOM:
 
     if run_install:
         run_yarn_install(project_folder)
@@ -288,7 +331,7 @@ def update_sbom_from_yarn(ossbom: OSSBOM, project_folder: str | os.PathLike[str]
         ossbom.add_components(components)
 
     # get all packages in the package.json file
-    #if package_json_file_exists(project_folder):
+    # if package_json_file_exists(project_folder):
     #    packages.add_list(get_all_package_json_packages(project_folder), "package.json", DependencyEnv.PROD, type="npm")
 
     # yarn list
