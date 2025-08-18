@@ -1,11 +1,11 @@
-# OSSPREY Python Client
+# Ossprey Python Client
 Python client for scanning your code for Malware!
 
-# Installing
+# Installing
 
-Just run `pip install git+https://github.com/ossprey/ossprey-python-client` to install locally
+Just run `pip install ossprey` to install locally
 
-Then you can run it with `python -m scan --help`
+Then you can run it with `python -m ossprey --help`
 
 ## Running tests
 
@@ -18,3 +18,7 @@ poetry run python -m pytest
 ## Requirements
 
 This package requires you are on python3.12 or above. Feel free to raise an issue if you need other support.
+
+# Learn More
+
+More details about Ossprey can be found at [www.ossprey.com](www.ossprey.com)
