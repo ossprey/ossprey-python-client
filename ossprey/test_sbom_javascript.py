@@ -181,17 +181,17 @@ def test_update_sbom_from_yarn() -> None:
             assert component.name == "testpkg"
 
 
-# GitResolved tests
-def test_gitresolved_parses_https_url() -> None:
-    gr = GitResolved("git+https://github.com/pallets/flask.git#abcdef0123")
+# GitResolve tests
+def test_GitResolve_parses_https_url() -> None:
+    gr = GitResolve("git+https://github.com/pallets/flask.git#abcdef0123")
     assert gr.get_type() == "github"
     assert gr.get_version() == "abcdef0123"
     assert gr.url == "https://github.com/pallets/flask.git"
     assert gr.get_name() == "pallets/flask"
 
 
-def test_gitresolved_parses_ssh_url() -> None:
-    gr = GitResolved(
+def test_GitResolve_parses_ssh_url() -> None:
+    gr = GitResolve(
         "git+ssh://git@github.com/ossprey/example_malicious_javascript.git#deadbeef"
     )
     assert gr.get_type() == "github"
@@ -200,13 +200,13 @@ def test_gitresolved_parses_ssh_url() -> None:
     assert gr.get_name() == "ossprey/example_malicious_javascript"
 
 
-def test_gitresolved_raises_without_git_prefix() -> None:
+def test_GitResolve_raises_without_git_prefix() -> None:
     with pytest.raises(ValueError):
-        GitResolved("https://github.com/org/repo.git#123")
+        GitResolve("https://github.com/org/repo.git#123")
 
 
-def test_gitresolved_without_dot_git_suffix() -> None:
-    gr = GitResolved("git+https://github.com/org/repo#main")
+def test_GitResolve_without_dot_git_suffix() -> None:
+    gr = GitResolve("git+https://github.com/org/repo#main")
     assert gr.get_type() == "github"
     assert gr.url == "https://github.com/org/repo"
     assert gr.get_name() == "org/repo"
