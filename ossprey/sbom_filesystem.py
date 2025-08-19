@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
+from typing import Iterable
 from urllib.parse import urlparse
 
 from ossbom.model.dependency_env import DependencyEnv
@@ -13,6 +13,7 @@ from ossprey.sbom_javascript import (
     node_modules_directory_exists,
     get_all_package_lock_packages,
     get_all_yarn_lock_packages,
+    resolve_github_duplicates,
 )
 
 # TODO All this code needs a refactor with the sbom_python and sbom_javascript code
@@ -170,6 +171,9 @@ def update_sbom_from_filesystem(ossbom: OSSBOM, project_folder: str = "/") -> OS
     components.extend(_iter_node_modules(root))
     components.extend(_iter_package_lock_files(root))
     components.extend(_iter_yarn_lock_files(root))
+
+    # Resolve potential NPM - Github duplications
+    components = resolve_github_duplicates(components)
 
     # Add to SBOM
     ossbom.add_components(components)

@@ -13,13 +13,16 @@ def cleanup():
 
 
 @pytest.mark.parametrize(
-    "docker_folder, expected_packages, no_of_packages",
+    "docker_folder, expected_packages, not_expected_packages, no_of_packages",
     [
         (
             "../test/docker_js_simple_math",
             {
                 "npm": ["lodash", "axios"],
                 "github": ["ossprey/example_malicious_javascript"],
+            },
+            {
+                "npm": ["mathlib"],
             },
             509,
         ),
@@ -29,11 +32,16 @@ def cleanup():
                 "pypi": ["fastapi", "uvicorn", "solana", "solders", "pydantic"],
                 "github": ["ossprey/example_malicious_python"],
             },
+            {
+                "pypi": ["ossprey/example_malicious_python"],
+            },
             27,
         ),
     ],
 )
-def test_docker_build(docker_folder, expected_packages, no_of_packages) -> None:
+def test_docker_build(
+    docker_folder, expected_packages, not_expected_packages, no_of_packages
+) -> None:
     if shutil.which("docker") is None:
         pytest.skip("Docker not available in environment")
 
@@ -64,6 +72,19 @@ def test_docker_build(docker_folder, expected_packages, no_of_packages) -> None:
                 None,
             )
             assert comp is not None, f"Expected {type} {package} to be in SBOM"
+
+    for type, packages in not_expected_packages.items():
+        for package in packages:
+            print(f"Type: {type} Package: {package}")
+            comp = next(
+                (
+                    c
+                    for c in sbom["components"]
+                    if c.get("type") == type and c.get("name") == package
+                ),
+                None,
+            )
+            assert comp is None, f"Expected {type} {package} to NOT be in SBOM"
 
     # Basic structure checks
     assert isinstance(sbom.get("components"), list)

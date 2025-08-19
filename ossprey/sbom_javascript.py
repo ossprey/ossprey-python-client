@@ -40,6 +40,47 @@ class GitResolve:
         return self.version
 
 
+def resolve_github_duplicates(components: list[Component]) -> list[Component]:
+
+    def hash(name, version, locations):
+        ret = name + "-" + version + "-" + "-".join(locations)
+        return ret
+
+    # Get a list of npm names, versions and locations from GH components
+    github_npm_details = set()
+    github_components = [comp for comp in components if comp.type == "github"]
+    for comp in github_components:
+        metadata = comp.metadata or {}
+        github_npm_details.add(
+            hash(
+                metadata.get("npm_name", ""),
+                metadata.get("npm_version", ""),
+                comp.location,
+            )
+        )
+
+    print(github_npm_details)
+
+    # Remove any NPM packages that match these details
+    returned_components = []
+    for comp in components:
+        if comp.type == "npm":
+            if hash(comp.name, comp.version, comp.location) not in github_npm_details:
+                returned_components.append(comp)
+            else:
+                print("not appended: {comp.name}, {comp.version}")
+        else:
+            returned_components.append(comp)
+    # returned_components = [
+    #    comp
+    #    for comp in components
+    #    if comp.type == "npm"
+    #    and hash(comp.name, comp.version, comp.location) not in github_npm_details
+    # ]
+
+    return returned_components
+
+
 def exec_command(command: str, cwd: str | None = None) -> str:
     try:
         # Run the yarn command with the specified cwd
@@ -134,10 +175,16 @@ def get_all_package_lock_packages(
             # Create a github component
             type = "github"
             git_details = GitResolve(package["resolved"])
+            metadata = {"npm_name": name, "npm_version": version}
             name = git_details.get_name()
             version = git_details.get_version()
             component = Component.create(
-                name=name, version=version, env=env, type=type, source=source
+                name=name,
+                version=version,
+                env=env,
+                type=type,
+                source=source,
+                metadata=metadata,
             )
         else:
             # Create an NPM package

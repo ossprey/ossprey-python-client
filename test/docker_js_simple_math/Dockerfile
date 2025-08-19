@@ -5,17 +5,17 @@ FROM node:22-alpine AS base
 
 # Install build tools for dependencies if needed (libsodium for ed25519 may be required by solana-py)
 RUN apk add --no-cache \
-	build-base \
-	pkgconf \
-	libsodium \
-	git
+      build-base \
+      pkgconf \
+      libsodium \
+      git
 
 # Install javascript test
 WORKDIR /app/
 COPY javascript/package.json ./
 RUN npm install --omit=dev
 COPY javascript/src ./src
-RUN find /app/ -type d 
+RUN find /app/ -type d
 
 # --- Scanner stage: does NOT contaminate what is scanned ---
 FROM python:3.12-alpine AS scanner
@@ -29,9 +29,9 @@ RUN  /bin/sh -lc '. /opt/venv/bin/activate && \
 
 # Mount the entire root fs of `base` at /scanfs (read-only) and scan that.
 RUN --mount=type=bind,from=base,source=/,target=/scanfs,ro \
-    /bin/sh -lc '. /opt/venv/bin/activate && \
+      /bin/sh -lc '. /opt/venv/bin/activate && \
       mkdir -p /scan-result && \
-      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run '
+      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run'
 
 FROM scratch AS sbom-export
 # Export SBOM; retrieve to local disk with:
