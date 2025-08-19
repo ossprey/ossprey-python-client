@@ -164,7 +164,7 @@ def get_all_package_lock_packages(
 
     components = []
     for name, package in data["packages"].items():
-        name = name.replace("node_modules/", "")
+        name = name.rsplit("node_modules/", 1)[-1]
         if name == "":
             continue
         version = package["version"]

@@ -18,11 +18,11 @@ def cleanup():
         (
             "../test/docker_js_simple_math",
             {
-                "npm": ["lodash", "axios"],
+                "npm": ["lodash", "axios", "@types/ms", "ms"],
                 "github": ["ossprey/example_malicious_javascript"],
             },
             {
-                "npm": ["mathlib"],
+                "npm": ["mathlib", "send/ms"],
             },
             509,
         ),
