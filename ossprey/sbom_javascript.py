@@ -59,7 +59,7 @@ def resolve_github_duplicates(components: list[Component]) -> list[Component]:
             )
         )
 
-    print(github_npm_details)
+    logger.debug(github_npm_details)
 
     # Remove any NPM packages that match these details
     returned_components = []
