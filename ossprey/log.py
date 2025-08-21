@@ -1,8 +1,10 @@
+from __future__ import annotations
 import logging
 import logging.config
+from typing import Dict, Any
 
 
-def get_logging_config(log_level):
+def get_logging_config(log_level: int) -> Dict[str, Any]:
     LOGGING_CONFIG = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -38,7 +40,7 @@ def get_logging_config(log_level):
     return LOGGING_CONFIG
 
 
-def init_logging(verbose=False):
+def init_logging(verbose: bool = False) -> None:
     log_level = logging.DEBUG if verbose else logging.WARNING
 
     config = get_logging_config(log_level)

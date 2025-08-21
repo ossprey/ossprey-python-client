@@ -1,6 +1,7 @@
 #!/bin/bash 
 # Setup poetry
 pip install poetry==2.0.1
+poetry config virtualenvs.in-project true
 poetry install
 
 # Git Config

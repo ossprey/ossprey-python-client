@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import logging
 import os
@@ -19,7 +20,7 @@ TOKEN_ENDPOINT = f"https://{USER_POOL_DOMAIN}.auth.{REGION}.amazoncognito.com/oa
 
 class Ossprey:
 
-    def __init__(self, api_url, api_key):
+    def __init__(self, api_url: str, api_key: str):
         self.api_url = api_url
         self.api_key = api_key
 
@@ -29,7 +30,7 @@ class Ossprey:
         self.auth()
         self.session = self.create_session()
 
-    def auth(self):
+    def auth(self) -> None:
         """Authenticate with API Refresh Key and retrieve a temporary access token
 
         Raises:
@@ -60,7 +61,7 @@ class Ossprey:
         logger.debug("Authentication succeeded")
 
     # This takes a python dictionary and submits it to the API
-    def validate(self, minibom: dict) -> dict:
+    def validate(self, minibom: dict) -> dict | None:
 
         response = self.submit(minibom)
 
@@ -85,7 +86,7 @@ class Ossprey:
                     logger.error(data["message"])
                 return None
 
-    def submit(self, json_bom):
+    def submit(self, json_bom: dict) -> requests.Response:
 
         # Get the url
         url = self.api_url + '/submit'
@@ -99,7 +100,7 @@ class Ossprey:
 
         return response
         
-    def wait_for_completion(self, sbom_id, scan_id):
+    def wait_for_completion(self, sbom_id: str, scan_id: str) -> dict:
         url = self.api_url + '/status'
 
         params = {"sbom_id": sbom_id, "scan_id": scan_id}

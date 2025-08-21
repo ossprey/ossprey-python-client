@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import logging
 import os
@@ -11,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 class VirtualEnv:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.original_sys_path = sys.path[:]
         self.temporary_dir = tempfile.TemporaryDirectory()
         self.temporary_files = []
 
         self.create_virtualenv()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.exit()
 
         for file in self.temporary_files:
@@ -27,7 +28,7 @@ class VirtualEnv:
         self.temporary_dir.cleanup()
 
     # Private methods
-    def _exec(self, command, stdout=None):
+    def _exec(self, command: list[str], stdout=None):
         """
         Executes the specified command in the virtual environment.
 
@@ -52,7 +53,7 @@ class VirtualEnv:
 
         return result
 
-    def _get_pip_executable(self):
+    def _get_pip_executable(self) -> str:
         """
         Returns the path to the pip executable in the virtual environment.
         """
@@ -63,7 +64,7 @@ class VirtualEnv:
             else os.path.join(self.temporary_dir, "Scripts", "pip.exe")
         )
 
-    def _pip_install(self, package_path):
+    def _pip_install(self, package_path: str):
         """
         Installs the specified package in the virtual environment.
 
@@ -75,7 +76,7 @@ class VirtualEnv:
 
         return result
 
-    def _pip_list(self):
+    def _pip_list(self) -> list[dict]:
         """
         Lists all packages installed in the virtual environment.
         """
@@ -85,10 +86,10 @@ class VirtualEnv:
         return installed_packages
 
     # Public methods
-    def get_venv_dir(self):
+    def get_venv_dir(self) -> str:
         return self.temporary_dir.name
 
-    def create_virtualenv(self):
+    def create_virtualenv(self) -> None:
         """
         Creates a virtual environment in the specified directory.
         """
@@ -96,7 +97,7 @@ class VirtualEnv:
         venv_builder.create(self.get_venv_dir())
         logger.debug(f"Virtual environment created at {self.temporary_dir}")
 
-    def install_package(self, package_path):
+    def install_package(self, package_path: str) -> None:
         """
         Installs the specified package in the virtual environment.
 
@@ -108,13 +109,13 @@ class VirtualEnv:
             f"Package '{package_path}' installed in virtual environment at {self.temporary_dir}"
         )
 
-    def list_installed_packages(self):
+    def list_installed_packages(self) -> list[dict]:
         """
         Lists all packages installed in the virtual environment.
         """
         return self._pip_list()
 
-    def create_requirements_file_from_env(self):
+    def create_requirements_file_from_env(self) -> str:
 
         requirements_file = tempfile.NamedTemporaryFile(suffix=".txt", delete=False)
         self.temporary_files.append(requirements_file.name)
@@ -124,7 +125,7 @@ class VirtualEnv:
 
         return requirements_file.name
 
-    def enter(self):
+    def enter(self) -> None:
         """
         Replaces sys.path with paths from the specified virtual environment.
         """
@@ -154,7 +155,7 @@ class VirtualEnv:
         # Clear sys.path and set it to only include the virtualenv's site-packages and standard library
         sys.path[:] = [site_packages, stdlib]
 
-    def exit(self):
+    def exit(self) -> None:
         """
         Restores the original sys.path.
         """

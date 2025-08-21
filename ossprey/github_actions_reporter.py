@@ -1,7 +1,9 @@
+from __future__ import annotations
 import requests
 import os
 import logging
 import shutil
+from typing import Optional, Tuple
 
 from packageurl import PackageURL
 
@@ -15,7 +17,7 @@ def can_report_to_github() -> bool:
     return not shutil.which("git") is None
 
 
-def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github=False) -> bool:
+def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github: bool = False) -> bool:
     """
     Print the errors in a format that can be consumed by GitHub Actions
     """
@@ -44,14 +46,14 @@ def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github=False
                 post_comments_to_pull_request(details.token, details.repo, details.pull_number, details.commit_sha, message, file, line)
                 post_comment_to_github_summary(details.token, details.repo, details.pull_number, message)
     else:
-        print("No vulnerabilities found")
+        print("No malware found")
 
     append_to_github_output(has_vulnerabilities, str(has_vulnerabilities).lower())
 
     return not has_vulnerabilities
 
 
-def get_component_reference(component_name: str, package_path: str):
+def get_component_reference(component_name: str, package_path: str) -> Tuple[Optional[str], Optional[int]]:
     """
     Search through the files in the package until a requirements.txt or setup.py file
     that references the component name is found.
@@ -83,15 +85,15 @@ def get_component_reference(component_name: str, package_path: str):
 
 
 class GitHubDetails:
-    def __init__(self, token, repo, pull_number, commit_sha, is_pull_request):
-        self.token = token
-        self.repo = repo
-        self.pull_number = pull_number
-        self.commit_sha = commit_sha
-        self.is_pull_request = is_pull_request
+    def __init__(self, token: Optional[str], repo: Optional[str], pull_number: str, commit_sha: Optional[str], is_pull_request: bool):
+        self.token: Optional[str] = token
+        self.repo: Optional[str] = repo
+        self.pull_number: str = pull_number
+        self.commit_sha: Optional[str] = commit_sha
+        self.is_pull_request: bool = is_pull_request
 
 
-def create_github_details():
+def create_github_details() -> GitHubDetails:
     # Lazy import to avoid issues when running in context where GitHub API is not needed
     from github import Github
 
@@ -118,7 +120,7 @@ def create_github_details():
     return GitHubDetails(token, repo, pull_number, commit_sha, is_pull_request)
 
 
-def post_comments_to_pull_request(token, repo, pull_number, commit_sha, comment, file_path, line=0):
+def post_comments_to_pull_request(token: str, repo: str, pull_number: str, commit_sha: str, comment: str, file_path: str, line: int = 0) -> None:
 
     data = {
         "body": comment,
@@ -150,7 +152,7 @@ def post_comments_to_pull_request(token, repo, pull_number, commit_sha, comment,
         print(response.json())  # Debugging information
 
 
-def post_comment_to_github_summary(token, repo, pull_number, comment):
+def post_comment_to_github_summary(token: str, repo: str, pull_number: str, comment: str) -> None:
     # GitHub API URL to create a comment on the PR
     # Although we are posting on a Pull-Request we need to use the issues endpoint.
     # This allows us to post a comment that does not include a `commit_id` or `path`.
@@ -178,7 +180,7 @@ def post_comment_to_github_summary(token, repo, pull_number, comment):
         print(response.json())
 
 
-def append_to_github_output(key: str, value: str) -> None:
+def append_to_github_output(key: bool | str, value: str) -> None:
     if os.getenv("GITHUB_OUTPUT"):
         with open(os.getenv("GITHUB_OUTPUT"), "a", encoding="utf-8") as f:
             f.write(f"{key}={value}\n")

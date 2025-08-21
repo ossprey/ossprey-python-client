@@ -1,9 +1,14 @@
+from __future__ import annotations
 import argparse
 import os
+from argparse import Namespace
+from typing import Optional
+
+from ossprey.modes import get_all_modes
 
 
 # Used to pull booleans from env vars
-def get_bool(value):
+def get_bool(value: Optional[str]) -> bool:
     return value.lower() in ("true", "1", "yes", "on") if value else False
 
 
@@ -12,7 +17,7 @@ def get_bool(value):
 # Please Note: Everything argument needs a default value otherwise tests will fail
 # @return: The parsed arguments
 ###
-def parse_arguments():
+def parse_arguments() -> Namespace:
 
     parser = argparse.ArgumentParser(description="API URL:")
     parser.add_argument(
@@ -22,9 +27,10 @@ def parse_arguments():
         default=os.getenv("INPUT_URL", "https://api.ossprey.com")
     )
     parser.add_argument(
-        "--package",
+        "--package", "--dir",
+        dest="package",
         type=str,
-        help="The package to scan",
+        help="The package or directory to scan",
         default=os.getenv("INPUT_PACKAGE", os.getcwd())
     )
     parser.add_argument(
@@ -50,7 +56,7 @@ def parse_arguments():
     # Scanning methods
     parser.add_argument(
         '--mode',
-        choices=['pipenv', 'python-requirements', 'npm', 'yarn', 'auto'],
+        choices=get_all_modes(),
         help="Mode to generate the SBOM. Choose 'pipenv' to install the package or 'requirements' to provide a requirements file.",
         default=os.getenv("INPUT_MODE", 'auto')
     )
@@ -69,6 +75,14 @@ def parse_arguments():
         action="store_true",
         help="If the scan causes an error don't stop the CICD process from continuing",
         default=get_bool(os.getenv("INPUT_SOFT_ERROR"))
+    )
+
+    # Output
+    parser.add_argument(
+        '-o', '--output',
+        type=str,
+        help="Output file for the SBOM",
+        default=os.getenv("INPUT_OUTPUT", None)
     )
 
     args = parser.parse_args()
