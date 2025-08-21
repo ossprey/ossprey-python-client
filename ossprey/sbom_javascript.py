@@ -68,7 +68,7 @@ def resolve_github_duplicates(components: list[Component]) -> list[Component]:
             if hash(comp.name, comp.version, comp.location) not in github_npm_details:
                 returned_components.append(comp)
             else:
-                print("not appended: {comp.name}, {comp.version}")
+                print(f"not appended: {comp.name}, {comp.version}")
         else:
             returned_components.append(comp)
     # returned_components = [
