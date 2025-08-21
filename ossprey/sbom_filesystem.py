@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import fnmatch
+import os
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
@@ -18,24 +20,65 @@ from ossprey.sbom_javascript import (
 
 # TODO All this code needs a refactor with the sbom_python and sbom_javascript code
 
-_ignore_dirs = ["/proc", "/sys", "/dev", "/var/log", "/var/cache"]
+IGNORE_DIRS = tuple(
+    Path(p) for p in ("/proc", "/sys", "/dev", "/var/log", "/var/cache")
+)
 
 
-def _iter_folders(
+def _is_under(path: Path, base: Path) -> bool:
+    """True if path is inside base (handles symlinks)."""
+    try:
+        return path.resolve().is_relative_to(base.resolve())
+    except AttributeError:
+        # Python <3.9 fallback
+        try:
+            path.resolve().relative_to(base.resolve())
+            return True
+        except Exception:
+            return False
+
+
+def iter_paths(
     root: Path, wildcard: str = "*", dir_only: bool = False
 ) -> Iterable[Path]:
-    for p in root.rglob(wildcard):
-        print(p)
-        if any(str(p).startswith(ignored) for ignored in _ignore_dirs):
+    """
+    Walk safely and prune ignored dirs before descending.
+    Matches against entry names with fnmatch.
+    """
+    root = root if root.is_absolute() else root.resolve()
+
+    for dirpath, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+        base = Path(dirpath)
+
+        # prune ignored subtrees
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if not any(
+                _is_under(base / d, ig) or (base / d).resolve() == ig.resolve()
+                for ig in IGNORE_DIRS
+            )
+        ]
+
+        if dir_only:
+            for d in dirnames:
+                if fnmatch.fnmatch(d, wildcard):
+                    yield base / d
             continue
-        if p.is_dir() or not dir_only:
-            yield p
+
+        # files + dirs
+        for name in dirnames:
+            if fnmatch.fnmatch(name, wildcard):
+                yield base / name
+        for name in filenames:
+            if fnmatch.fnmatch(name, wildcard):
+                yield base / name
 
 
 def _iter_python_pkgs(root: Path) -> Iterable[Component]:
 
     python_pkgs = []
-    for p in _iter_folders(root, dir_only=True):
+    for p in iter_paths(root, dir_only=True):
         if p.name.endswith(".dist-info") or p.name.endswith(".egg-info"):
             name, ver = None, None
             for meta in ("METADATA", "PKG-INFO"):
@@ -70,7 +113,7 @@ def _iter_python_pkgs(root: Path) -> Iterable[Component]:
 
 
 def _iter_node_modules(root: Path) -> Iterable[Component]:
-    for nm in _iter_folders(root, "node_modules", dir_only=True):
+    for nm in iter_paths(root, wildcard="node_modules", dir_only=True):
         path = nm.resolve().parent
         if node_modules_directory_exists(path):
             for c in get_all_node_modules_packages(path):
@@ -79,14 +122,14 @@ def _iter_node_modules(root: Path) -> Iterable[Component]:
 
 
 def _iter_package_lock_files(root: Path) -> Iterable[Component]:
-    for f in _iter_folders(root, "package-lock.json"):
+    for f in iter_paths(root, wildcard="package-lock.json"):
         for c in get_all_package_lock_packages(f.parent):
             c.add_location(str(f.parent))
             yield c
 
 
 def _iter_yarn_lock_files(root: Path) -> Iterable[Component]:
-    for f in _iter_folders(root, "yarn.lock"):
+    for f in iter_paths(root, wildcard="yarn.lock"):
         for c in get_all_yarn_lock_packages(f.parent):
             c.add_location(str(f.parent))
             yield c
