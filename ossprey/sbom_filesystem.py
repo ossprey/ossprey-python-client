@@ -19,46 +19,30 @@ from ossprey.sbom_javascript import (
 )
 
 # TODO All this code needs a refactor with the sbom_python and sbom_javascript code
-
-IGNORE_DIRS = tuple(
-    Path(p) for p in ("/proc", "/sys", "/dev", "/var/log", "/var/cache")
-)
+IGNORE_PREFIXES = ("/proc", "/sys", "/dev", "/var/log", "/var/cache")
 
 
-def _is_under(path: Path, base: Path) -> bool:
-    """True if path is inside base (handles symlinks)."""
-    try:
-        return path.resolve().is_relative_to(base.resolve())
-    except AttributeError:
-        # Python <3.9 fallback
-        try:
-            path.resolve().relative_to(base.resolve())
+def _is_ignored(path: str) -> bool:
+    p = os.path.normpath(path)
+    for pref in IGNORE_PREFIXES:
+        q = os.path.normpath(pref)
+        if p == q or p.startswith(q + os.sep):
             return True
-        except Exception:
-            return False
+    return False
 
 
 def iter_paths(
     root: Path, wildcard: str = "*", dir_only: bool = False
 ) -> Iterable[Path]:
-    """
-    Walk safely and prune ignored dirs before descending.
-    Matches against entry names with fnmatch.
-    """
+    """Yield paths under root matching wildcard, pruning ignored dirs."""
     root = root if root.is_absolute() else root.resolve()
+    if _is_ignored(str(root)):
+        return
 
     for dirpath, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+        # prune before descending (skips /proc even when root is "/")
+        dirnames[:] = [d for d in dirnames if not _is_ignored(os.path.join(dirpath, d))]
         base = Path(dirpath)
-
-        # prune ignored subtrees
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if not any(
-                _is_under(base / d, ig) or (base / d).resolve() == ig.resolve()
-                for ig in IGNORE_DIRS
-            )
-        ]
 
         if dir_only:
             for d in dirnames:
@@ -66,13 +50,12 @@ def iter_paths(
                     yield base / d
             continue
 
-        # files + dirs
-        for name in dirnames:
-            if fnmatch.fnmatch(name, wildcard):
-                yield base / name
-        for name in filenames:
-            if fnmatch.fnmatch(name, wildcard):
-                yield base / name
+        for d in dirnames:
+            if fnmatch.fnmatch(d, wildcard):
+                yield base / d
+        for f in filenames:
+            if fnmatch.fnmatch(f, wildcard):
+                yield base / f
 
 
 def _iter_python_pkgs(root: Path) -> Iterable[Component]:
