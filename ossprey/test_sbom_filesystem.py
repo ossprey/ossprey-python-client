@@ -57,7 +57,7 @@ def test_iter_python_pkgs_without_version(tmp_path: Path) -> None:
 
 def test_iter_ignored_dirs() -> None:
     restricted_path = Path("/proc")
-    results = list(fs._iter_folders(restricted_path))
+    results = list(fs.iter_paths(restricted_path))
 
     assert results == []
 
