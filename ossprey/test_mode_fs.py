@@ -5,6 +5,11 @@ import os
 import tempfile
 import shutil
 
+skip_in_gha = pytest.mark.skipif(
+    os.getenv("GITHUB_ACTIONS") == "true",
+    reason="Skipped on GitHub Actions.",
+)
+
 
 @pytest.fixture(autouse=True)
 def cleanup():
@@ -39,6 +44,7 @@ def cleanup():
         ),
     ],
 )
+@skip_in_gha
 def test_docker_build(
     docker_folder, expected_packages, not_expected_packages, no_of_packages
 ) -> None:

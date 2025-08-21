@@ -25,6 +25,7 @@ def _iter_folders(
     root: Path, wildcard: str = "*", dir_only: bool = False
 ) -> Iterable[Path]:
     for p in root.rglob(wildcard):
+        print(p)
         if any(str(p).startswith(ignored) for ignored in _ignore_dirs):
             continue
         if p.is_dir() or not dir_only:
