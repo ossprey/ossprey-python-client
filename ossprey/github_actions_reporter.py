@@ -39,9 +39,9 @@ def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github: bool
             file, line = get_component_reference(name, package_path)
             message = f"WARNING: {name}:{version} contains malware. Remediate this immediately"
             print("Error: " + message)
-            print(f"::error file={file},line={line}::{message}")
 
             if post_to_github and details.is_pull_request:
+                print(f"::error file={file},line={line}::{message}")
                 append_to_github_output("error", message)
                 post_comments_to_pull_request(details.token, details.repo, details.pull_number, details.commit_sha, message, file, line)
                 post_comment_to_github_summary(details.token, details.repo, details.pull_number, message)

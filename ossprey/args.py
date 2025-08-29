@@ -45,9 +45,9 @@ def parse_arguments() -> Namespace:
         help="GitHub mode, will attempt to post comments to GitHub",
         default=get_bool(os.getenv("INPUT_GITHUB_COMMENTS"))
     )
-    
+
     parser.add_argument(
-        "--verbose",
+        "--verbose", '-v',
         action="store_true",
         help="Verbose mode",
         default=get_bool(os.getenv("INPUT_VERBOSE"))

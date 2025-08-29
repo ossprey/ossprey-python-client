@@ -37,13 +37,14 @@ def main() -> None:
 
             if not ret:
                 raise Exception("Error Malicious Package Found")
-    
+
         sys.exit(0)
 
     except Exception as e:
 
         # Print the full stack trace
-        logger.exception(e)
+        if args.verbose:
+            logger.exception(e)
 
         if args.soft_error:
             logger.error(f"Error: {e}")
