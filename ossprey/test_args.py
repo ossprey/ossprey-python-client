@@ -15,7 +15,14 @@ def set_ossprey_api_key(monkeypatch):
     [
         # Test case 1: CLI only
         (
-            ["script.py", "--url", "https://example.com", "--mode", "pipenv", "--verbose"],
+            [
+                "script.py",
+                "--url",
+                "https://example.com",
+                "--mode",
+                "pipenv",
+                "--verbose",
+            ],
             {},
             Namespace(
                 url="https://example.com",
@@ -26,7 +33,8 @@ def set_ossprey_api_key(monkeypatch):
                 mode="pipenv",
                 api_key="SPECIAL_KEY",
                 soft_error=False,
-                output=None
+                output=None,
+                light_scan=False,
             ),
         ),
         # Test case 2: Environment variable fallback
@@ -42,12 +50,22 @@ def set_ossprey_api_key(monkeypatch):
                 mode="python-requirements",
                 api_key="SPECIAL_KEY",
                 soft_error=False,
-                output=None
+                output=None,
+                light_scan=False,
             ),
         ),
         # Test case 3: CLI overrides environment variables
         (
-            ["script.py", "--url", "https://cli-url.com", "--dry-run", "--mode", "pipenv", "--api-key", "UNSPECIAL_KEY"],
+            [
+                "script.py",
+                "--url",
+                "https://cli-url.com",
+                "--dry-run",
+                "--mode",
+                "pipenv",
+                "--api-key",
+                "UNSPECIAL_KEY",
+            ],
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "false"},
             Namespace(
                 url="https://cli-url.com",
@@ -58,13 +76,18 @@ def set_ossprey_api_key(monkeypatch):
                 mode="pipenv",
                 api_key="UNSPECIAL_KEY",
                 soft_error=False,
-                output=None
+                output=None,
+                light_scan=False,
             ),
         ),
         # Test case 4: Handles only env vars
         (
             ["script.py"],
-            {"INPUT_URL": "https://env-url.com", "INPUT_PACKAGE": "newtest", "INPUT_MODE": "pipenv"},
+            {
+                "INPUT_URL": "https://env-url.com",
+                "INPUT_PACKAGE": "newtest",
+                "INPUT_MODE": "pipenv",
+            },
             Namespace(
                 url="https://env-url.com",
                 package="newtest",
@@ -74,7 +97,8 @@ def set_ossprey_api_key(monkeypatch):
                 mode="pipenv",
                 api_key="SPECIAL_KEY",
                 soft_error=False,
-                output=None
+                output=None,
+                light_scan=False,
             ),
         ),
         # Test case 5: Empty input
@@ -90,7 +114,8 @@ def set_ossprey_api_key(monkeypatch):
                 mode="auto",
                 api_key="SPECIAL_KEY",
                 soft_error=False,
-                output=None
+                output=None,
+                light_scan=False,
             ),
         ),
     ],
@@ -110,6 +135,76 @@ def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
     assert vars(args) == vars(expected)
 
 
+@pytest.mark.parametrize(
+    "cli_args,env_vars,expected_light_scan",
+    [
+        # CLI flag sets light_scan True
+        (
+            [
+                "script.py",
+                "--light-scan",
+                "--mode",
+                "pipenv",
+                "--url",
+                "https://x.com",
+                "--api-key",
+                "k",
+            ],
+            {},
+            True,
+        ),
+        # Env var sets light_scan True
+        (
+            [
+                "script.py",
+                "--mode",
+                "pipenv",
+                "--url",
+                "https://x.com",
+                "--api-key",
+                "k",
+            ],
+            {"INPUT_LIGHT_SCAN": "true"},
+            True,
+        ),
+        # Neither sets light_scan (default False)
+        (
+            [
+                "script.py",
+                "--mode",
+                "pipenv",
+                "--url",
+                "https://x.com",
+                "--api-key",
+                "k",
+            ],
+            {},
+            False,
+        ),
+        # Env var explicitly false
+        (
+            [
+                "script.py",
+                "--mode",
+                "pipenv",
+                "--url",
+                "https://x.com",
+                "--api-key",
+                "k",
+            ],
+            {"INPUT_LIGHT_SCAN": "false"},
+            False,
+        ),
+    ],
+)
+def test_light_scan_argument(monkeypatch, cli_args, env_vars, expected_light_scan):
+    monkeypatch.setattr("sys.argv", cli_args)
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, value)
+    args = parse_arguments()
+    assert args.light_scan == expected_light_scan
+
+
 def test_no_api_key_and_with_dryrun(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments
     monkeypatch.delenv("API_KEY")
@@ -126,8 +221,10 @@ def test_no_api_key_and_with_dryrun(monkeypatch):
         mode="pipenv",
         api_key=None,
         soft_error=False,
-        output=None)
-    
+        output=None,
+        light_scan=False,
+    )
+
     assert vars(args) == vars(expected)
 
 
@@ -141,7 +238,9 @@ def test_no_api_key_and_no_dryrun(monkeypatch):
         parse_arguments()
 
     # Validate the exit code and error message
-    assert excinfo.value.code == 2  # argparse exits with code 2 for argument parsing errors
+    assert (
+        excinfo.value.code == 2
+    )  # argparse exits with code 2 for argument parsing errors
 
 
 def test_mode_only_accepts_approved_values(monkeypatch):
@@ -153,4 +252,6 @@ def test_mode_only_accepts_approved_values(monkeypatch):
         parse_arguments()
 
     # Validate the exit code and error message
-    assert excinfo.value.code == 2  # argparse exits with code 2 for argument parsing errors
+    assert (
+        excinfo.value.code == 2
+    )  # argparse exits with code 2 for argument parsing errors

@@ -24,6 +24,7 @@ def main() -> None:
             local_scan=args.dry_run,
             url=args.url,
             api_key=args.api_key,
+            light_scan=args.light_scan
         )
 
         if sbom:

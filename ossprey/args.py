@@ -85,6 +85,14 @@ def parse_arguments() -> Namespace:
         default=os.getenv("INPUT_OUTPUT", None)
     )
 
+    # Run a light scan with less intensive checks
+    parser.add_argument(
+        '--light-scan',
+        action="store_true",
+        help="Run a light scan with less intensive checks",
+        default=get_bool(os.getenv("INPUT_LIGHT_SCAN", "false"))
+    )
+
     args = parser.parse_args()
 
     # Check if the API key is provided

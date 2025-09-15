@@ -24,11 +24,12 @@ def scan(
     local_scan: bool = False,
     url: str | None = None,
     api_key: str | None = None,
+    light_scan: bool = False,
 ) -> OSSBOM:
 
     if mode == "auto":
         logger.debug("Auto mode selected")
-        
+
         # Check the folder for files that map to different package managers
         modes = get_modes(package_name)
         if len(modes) == 0:
@@ -81,7 +82,10 @@ def scan(
     logger.info(f"Scanning {len(sbom.get_components())}")
 
     if not local_scan:
-        ossprey = Ossprey(url, api_key)
+        scan_settings = None
+        if light_scan:
+            scan_settings = {"light_scan": light_scan}
+        ossprey = Ossprey(url, api_key, scan_settings=scan_settings)
 
         # Compress to MINIBOM
         sbom = SBOMConverterFactory.to_minibom(sbom)

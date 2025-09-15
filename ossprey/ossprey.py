@@ -20,13 +20,14 @@ TOKEN_ENDPOINT = f"https://{USER_POOL_DOMAIN}.auth.{REGION}.amazoncognito.com/oa
 
 class Ossprey:
 
-    def __init__(self, api_url: str, api_key: str):
+    def __init__(self, api_url: str, api_key: str, scan_settings: dict = None) -> None:
         self.api_url = api_url
         self.api_key = api_key
+        self.scan_settings = scan_settings
 
         if not self.api_key:
             raise Exception("API Key is null or empty")
-        
+
         self.auth()
         self.session = self.create_session()
 
@@ -95,11 +96,13 @@ class Ossprey:
 
         # Submit bom to API
         json_data = {"sbom": json_bom}
+        if self.scan_settings:
+            json_data["settings"] = self.scan_settings
         headers = {'Content-Type': 'application/json', 'Authorization': f"Bearer {self.access_token}"}
         response = self.session.post(url, headers=headers, json=json_data)
 
         return response
-        
+
     def wait_for_completion(self, sbom_id: str, scan_id: str) -> dict:
         url = self.api_url + '/status'
 
@@ -129,7 +132,7 @@ class Ossprey:
     @staticmethod
     def create_session() -> requests.Session:
         """Return a Session that transparently retries on 503."""
-        
+
         _RETRIES: Final = 5
         _BACKOFF: Final = 1.0  # seconds
         _STATUS_FORCELIST = (503,)
