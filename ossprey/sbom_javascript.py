@@ -167,7 +167,10 @@ def get_all_package_lock_packages(
         name = name.rsplit("node_modules/", 1)[-1]
         if name == "":
             continue
-        version = package["version"]
+        # Skip if version is not present
+        version = package.get("version", None)
+        if version is None:
+            continue
         source = "package-lock.json"
         env = DependencyEnv.PROD.value
         is_github = package.get("resolved", "").find("github.com") != -1
