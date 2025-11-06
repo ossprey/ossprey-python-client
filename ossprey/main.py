@@ -18,10 +18,17 @@ def main() -> None:
     init_logging(args.verbose)
 
     try:
+
+        local_scan = None
+        if args.dry_run:
+            local_scan = "dry-run-safe"
+        elif args.dry_run_2:
+            local_scan = "dry-run-malicious"
+
         sbom = scan(
             args.package,
             mode=args.mode,
-            local_scan=args.dry_run,
+            local_scan=local_scan,
             url=args.url,
             api_key=args.api_key,
         )
@@ -41,7 +48,6 @@ def main() -> None:
         sys.exit(0)
 
     except Exception as e:
-
         # Print the full stack trace
         if args.verbose:
             logger.exception(e)
@@ -53,6 +59,3 @@ def main() -> None:
         else:
             logger.error(f"Error: {e}")
             sys.exit(1)
-
-
-

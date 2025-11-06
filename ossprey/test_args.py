@@ -47,7 +47,7 @@ def set_ossprey_api_key(monkeypatch):
         ),
         # Test case 3: CLI overrides environment variables
         (
-            ["script.py", "--url", "https://cli-url.com", "--dry-run", "--mode", "pipenv", "--api-key", "UNSPECIAL_KEY"],
+            ["script.py", "--url", "https://cli-url.com", "--dry-run-safe", "--mode", "pipenv", "--api-key", "UNSPECIAL_KEY"],
             {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "false"},
             Namespace(
                 url="https://cli-url.com",
@@ -113,7 +113,7 @@ def test_parse_arguments(monkeypatch, cli_args, env_vars, expected):
 def test_no_api_key_and_with_dryrun(monkeypatch):
     # Mock sys.argv with no mutually exclusive arguments
     monkeypatch.delenv("API_KEY")
-    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv", "--dry-run"])
+    monkeypatch.setattr("sys.argv", ["script.py", "--mode", "pipenv", "--dry-run-safe"])
     args = parse_arguments()
     print(args.api_key)
 
@@ -127,7 +127,7 @@ def test_no_api_key_and_with_dryrun(monkeypatch):
         api_key=None,
         soft_error=False,
         output=None)
-    
+
     assert vars(args) == vars(expected)
 
 

@@ -31,7 +31,7 @@ RUN  /bin/sh -lc '. /opt/venv/bin/activate && \
 RUN --mount=type=bind,from=base,source=/,target=/scanfs,ro \
       /bin/sh -lc '. /opt/venv/bin/activate && \
       mkdir -p /scan-result && \
-      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run'
+      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run-safe'
 
 FROM scratch AS sbom-export
 # Export SBOM; retrieve to local disk with:

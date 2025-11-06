@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from packageurl import PackageURL
 
 from ossprey.environment import get_environment_details
 from ossprey.log import init_logging
@@ -14,6 +15,7 @@ from ossprey.virtualenv import VirtualEnv
 
 from ossbom.converters.factory import SBOMConverterFactory
 from ossbom.model.ossbom import OSSBOM
+from ossbom.model.vulnerability import Vulnerability
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +23,14 @@ logger = logging.getLogger(__name__)
 def scan(
     package_name: str,
     mode: str = "auto",
-    local_scan: bool = False,
+    local_scan: str | None = None,
     url: str | None = None,
     api_key: str | None = None,
 ) -> OSSBOM:
 
     if mode == "auto":
         logger.debug("Auto mode selected")
-        
+
         # Check the folder for files that map to different package managers
         modes = get_modes(package_name)
         if len(modes) == 0:
@@ -92,6 +94,17 @@ def scan(
 
         # Convert to OSSBOM
         sbom = SBOMConverterFactory.from_minibom(sbom)
+
+    if local_scan == "dry-run-malicious":
+        # Add a vulnerability for testing purposes
+        component = sbom.get_components()[0]
+        purl = f"pkg:{component.type}/{component.name}@{component.version}"
+        vulnerability = Vulnerability(
+            id="TEST-2024-0001",
+            purl=purl,
+            description="This is a test vulnerability added in dry-run-malicious mode",
+        )
+        sbom.add_vulnerability(vulnerability)
 
     logger.debug(json.dumps(sbom.to_dict(), indent=4))
 
