@@ -97,6 +97,10 @@ def scan(
 
     if local_scan == "dry-run-malicious":
         # Add a vulnerability for testing purposes
+        components = sbom.get_components()
+        if len(components) == 0:
+            raise Exception("No components found to add a test vulnerability")
+
         component = sbom.get_components()[0]
         purl = f"pkg:{component.type}/{component.name}@{component.version}"
         vulnerability = Vulnerability(
