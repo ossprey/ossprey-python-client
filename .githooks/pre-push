@@ -13,4 +13,11 @@ poetry run python -m ossprey --dry-run-safe --package test/npm_simple_math/ --mo
 poetry run python -m ossprey --dry-run-safe --package test/yarn_simple_math/ --mode yarn
 poetry run python -m ossprey --dry-run-safe --package test/yarn_massive_math/ --mode yarn
 poetry run python -m ossprey --dry-run-safe --package test/python_simple_math/ --mode python-requirements
-poetry run python -m ossprey --dry-run-malicious --package test/npm_simple_math/ --mode npm
+
+# Test malicious detection (should fail with exit code 1)
+if poetry run python -m ossprey --dry-run-malicious --package test/npm_simple_math/ --mode npm; then
+    echo "ERROR: Malicious package detection failed - should have detected malware!"
+    exit 1
+else
+    echo "SUCCESS: Malicious package detection working correctly"
+fi
