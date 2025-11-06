@@ -9,7 +9,7 @@ def test_main_function(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["script.py"])
     monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math")
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
-    monkeypatch.setenv("INPUT_DRY_RUN", "True")
+    monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
 
     with pytest.raises(SystemExit) as excinfo:
         main()
@@ -25,7 +25,7 @@ def test_main_function_with_output(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["script.py"])
     monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math")
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
-    monkeypatch.setenv("INPUT_DRY_RUN", "True")
+    monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
     monkeypatch.setenv("INPUT_OUTPUT", "sbom_output.json")
 
     with pytest.raises(SystemExit) as excinfo:
@@ -51,7 +51,7 @@ def test_main_function_soft_error(monkeypatch, soft_error, expected_ret):
     monkeypatch.setattr("sys.argv", ["script.py"])
     monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math_no_exist")
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
-    monkeypatch.setenv("INPUT_DRY_RUN", "True")
+    monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
     monkeypatch.setenv("INPUT_SOFT_ERROR", soft_error)
 
     with pytest.raises(SystemExit) as excinfo:

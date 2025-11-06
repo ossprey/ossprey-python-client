@@ -20,7 +20,8 @@ def set_ossprey_api_key(monkeypatch):
             Namespace(
                 url="https://example.com",
                 package=os.getcwd(),
-                dry_run=False,
+                dry_run_safe=False,
+                dry_run_malicious=False,
                 github_comments=False,
                 verbose=True,
                 mode="pipenv",
@@ -32,11 +33,12 @@ def set_ossprey_api_key(monkeypatch):
         # Test case 2: Environment variable fallback
         (
             ["script.py", "--mode", "python-requirements"],
-            {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "true"},
+            {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN_SAFE": "true"},
             Namespace(
                 url="https://env-url.com",
                 package=os.getcwd(),
-                dry_run=True,
+                dry_run_safe=True,
+                dry_run_malicious=False,
                 github_comments=False,
                 verbose=False,
                 mode="python-requirements",
@@ -48,11 +50,12 @@ def set_ossprey_api_key(monkeypatch):
         # Test case 3: CLI overrides environment variables
         (
             ["script.py", "--url", "https://cli-url.com", "--dry-run-safe", "--mode", "pipenv", "--api-key", "UNSPECIAL_KEY"],
-            {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN": "false"},
+            {"INPUT_URL": "https://env-url.com", "INPUT_DRY_RUN_SAFE": "false"},
             Namespace(
                 url="https://cli-url.com",
                 package=os.getcwd(),
-                dry_run=True,
+                dry_run_safe=True,
+                dry_run_malicious=False,
                 github_comments=False,
                 verbose=False,
                 mode="pipenv",
@@ -68,7 +71,8 @@ def set_ossprey_api_key(monkeypatch):
             Namespace(
                 url="https://env-url.com",
                 package="newtest",
-                dry_run=False,
+                dry_run_safe=False,
+                dry_run_malicious=False,
                 github_comments=False,
                 verbose=False,
                 mode="pipenv",
@@ -84,7 +88,8 @@ def set_ossprey_api_key(monkeypatch):
             Namespace(
                 url="https://api.ossprey.com",
                 package=os.getcwd(),
-                dry_run=False,
+                dry_run_safe=False,
+                dry_run_malicious=False,
                 github_comments=False,
                 verbose=False,
                 mode="auto",
@@ -120,7 +125,8 @@ def test_no_api_key_and_with_dryrun(monkeypatch):
     expected = Namespace(
         url="https://api.ossprey.com",
         package=os.getcwd(),
-        dry_run=True,
+        dry_run_safe=True,
+        dry_run_malicious=False,
         github_comments=False,
         verbose=False,
         mode="pipenv",

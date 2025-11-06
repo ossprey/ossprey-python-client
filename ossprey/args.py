@@ -94,7 +94,7 @@ def parse_arguments() -> Namespace:
     args = parser.parse_args()
 
     # Check if the API key is provided
-    if args.api_key is None and args.dry_run is False and args.dry_run_2 is False:
+    if args.api_key is None and args.dry_run_safe is False and args.dry_run_malicious is False:
         parser.error("--api_key or the environment variable API_KEY is required")
 
     return args

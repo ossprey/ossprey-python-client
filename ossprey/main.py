@@ -20,9 +20,9 @@ def main() -> None:
     try:
 
         local_scan = None
-        if args.dry_run:
+        if args.dry_run_safe:
             local_scan = "dry-run-safe"
-        elif args.dry_run_2:
+        elif args.dry_run_malicious:
             local_scan = "dry-run-malicious"
 
         sbom = scan(
