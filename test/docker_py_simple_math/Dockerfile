@@ -26,13 +26,13 @@ RUN python -m venv /opt/venv
 # Install the local version of ossprey-python-client
 COPY --from=local-package / /workspaces/ossprey-python-client
 RUN  /bin/sh -lc '. /opt/venv/bin/activate && \
-      pip install --no-cache-dir /workspaces/ossprey-python-client'
+	pip install --no-cache-dir /workspaces/ossprey-python-client'
 
 # Mount the entire root fs of `base` at /scanfs (read-only) and scan that.
 RUN --mount=type=bind,from=base,source=/,target=/scanfs,ro \
-    /bin/sh -lc '. /opt/venv/bin/activate && \
-      mkdir -p /scan-result && \
-      python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run --verbose '
+	/bin/sh -lc '. /opt/venv/bin/activate && \
+	mkdir -p /scan-result && \
+	python -u -m ossprey --mode fs --dir /scanfs -o /scan-result/sbom.json --dry-run-safe --verbose '
 
 FROM scratch AS sbom-export
 # Export SBOM; retrieve to local disk with:

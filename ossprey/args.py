@@ -34,10 +34,16 @@ def parse_arguments() -> Namespace:
         default=os.getenv("INPUT_PACKAGE", os.getcwd())
     )
     parser.add_argument(
-        "--dry-run",
+        "--dry-run-safe",
         action="store_true",
         help="Dry run mode",
-        default=get_bool(os.getenv("INPUT_DRY_RUN"))
+        default=get_bool(os.getenv("INPUT_DRY_RUN_SAFE"))
+    )
+    parser.add_argument(
+        "--dry-run-malicious",
+        action="store_true",
+        help="Dry run mode",
+        default=get_bool(os.getenv("INPUT_DRY_RUN_MALICIOUS"))
     )
     parser.add_argument(
         "--github-comments",
@@ -88,7 +94,7 @@ def parse_arguments() -> Namespace:
     args = parser.parse_args()
 
     # Check if the API key is provided
-    if args.api_key is None and args.dry_run is False:
+    if args.api_key is None and args.dry_run_safe is False and args.dry_run_malicious is False:
         parser.error("--api_key or the environment variable API_KEY is required")
 
     return args
