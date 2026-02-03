@@ -51,7 +51,7 @@ class Ossprey:
     def submit(self, json_bom: dict) -> requests.Response:
 
         # Get the url
-        url = self.api_url + "/submit"
+        url = self.api_url + "/public/v1/scans"
 
         logger.debug(f"JSON Submission: {json.dumps(json_bom)}")
 
@@ -63,7 +63,7 @@ class Ossprey:
         return response
 
     def wait_for_completion(self, sbom_id: str, scan_id: str) -> dict:
-        url = self.api_url + "/status"
+        url = self.api_url + "/public/v1/scans/status"
 
         params = {"sbom_id": sbom_id, "scan_id": scan_id}
 
