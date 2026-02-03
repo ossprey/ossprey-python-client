@@ -87,7 +87,7 @@ def exec_command(command: str, cwd: str | None = None) -> str:
         result = subprocess.run(
             command.split(" "),
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            # stderr=subprocess.STDOUT, # TODO if this errors the json decode goes haywire
             text=True,
             cwd=cwd if cwd else None,  # Explicitly set to None if not used
             check=True,
