@@ -8,14 +8,8 @@ trap 'exit 1' ERR
 # Run unit tests
 poetry run pytest
 
-# Test with test packages locally
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/npm_simple_math/ --mode npm
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/yarn_simple_math/ --mode yarn
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/yarn_massive_math/ --mode yarn
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/python_simple_math/ --mode python-requirements
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/poetry_simple_math/ --mode poetry
-poetry run python -m ossprey --dry-run-safe --package test/test_packages/poetry_broken_simple_math/
-
+# Run Smoke tests
+poetry run pytest test/smoke/test_smoke.py
 
 # Test malicious detection (should fail with exit code 1)
 if poetry run python -m ossprey --dry-run-malicious --package test/test_packages/npm_simple_math/ --mode npm; then
