@@ -21,7 +21,7 @@ def cleanup():
     "docker_folder, expected_packages, not_expected_packages, no_of_packages",
     [
         (
-            "../test/docker_js_simple_math",
+            "../test/test_packages/docker_js_simple_math",
             {
                 "npm": ["lodash", "axios", "@types/ms", "ms"],
                 "github": ["ossprey/example_malicious_javascript"],
@@ -32,7 +32,7 @@ def cleanup():
             509,
         ),
         (
-            "../test/docker_py_simple_math",
+            "../test/test_packages/docker_py_simple_math",
             {
                 "pypi": ["fastapi", "uvicorn", "solana", "solders", "pydantic"],
                 "github": ["ossprey/example_malicious_python"],

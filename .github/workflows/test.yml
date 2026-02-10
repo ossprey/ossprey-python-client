@@ -33,6 +33,10 @@ jobs:
 
       - name: Run Runtime Tests
         run: |
-          poetry run python -m ossprey --dry-run-safe --package test/npm_simple_math/ --mode npm
-          poetry run python -m ossprey --dry-run-safe --package test/yarn_simple_math/ --mode yarn
-          poetry run python -m ossprey --dry-run-safe --package test/python_simple_math/ --mode python-requirements
+          poetry run python -m ossprey --dry-run-safe --package test/test_packages/npm_simple_math/ --mode npm
+          poetry run python -m ossprey --dry-run-safe --package test/test_packages/yarn_simple_math/ --mode yarn
+          poetry run python -m ossprey --dry-run-safe --package test/test_packages/python_simple_math/ --mode python-requirements
+
+      - name: Run smoke tests
+        run: |
+          poetry run pytest test/smoke/test_smoke.py -m "not network and not slow"

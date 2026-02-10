@@ -125,6 +125,14 @@ class VirtualEnv:
 
         return requirements_file.name
 
+    def __enter__(self):
+        self.enter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.exit()
+        return False
+
     def enter(self) -> None:
         """
         Replaces sys.path with paths from the specified virtual environment.
