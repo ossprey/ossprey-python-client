@@ -123,7 +123,10 @@ def maybe_run_api_scan(package_dir: str | Path, output_file: Path | None = None)
 EXISTING_PACKAGES = [
     "python_simple_math",
     "poetry_simple_math",
-    "poetry_broken_simple_math",
+    pytest.param(
+        "poetry_broken_simple_math",
+        marks=[pytest.mark.network, pytest.mark.slow]
+    ),
     "npm_simple_math",
     "yarn_simple_math",
     "yarn_massive_math",
