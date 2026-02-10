@@ -2,22 +2,67 @@ from __future__ import annotations
 import json
 import logging
 import os
-from packageurl import PackageURL
+from subprocess import CalledProcessError
 
 from ossprey.environment import get_environment_details
-from ossprey.log import init_logging
 from ossprey.modes import get_modes, get_all_modes
-from ossprey.sbom_python import update_sbom_from_requirements, update_sbom_from_poetry
+from ossprey.sbom_python import (
+    update_sbom_from_requirements,
+    update_sbom_from_poetry,
+    update_sbom_from_virtualenv,
+)
 from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
 from ossprey.sbom_filesystem import update_sbom_from_filesystem
 from ossprey.ossprey import Ossprey
-from ossprey.virtualenv import VirtualEnv
 
 from ossbom.converters.factory import SBOMConverterFactory
 from ossbom.model.ossbom import OSSBOM
 from ossbom.model.vulnerability import Vulnerability
 
 logger = logging.getLogger(__name__)
+
+
+def scan_python(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
+
+    if "python-requirements" in modes:
+        sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
+
+    if "poetry" in modes:
+        try:
+            sbom = update_sbom_from_poetry(sbom, package_name)
+        except CalledProcessError as e:
+            logger.error(
+                "Error running poetry scan, skipping poetry scan, attempting pipenv scan instead"
+            )
+            logger.debug(e.stderr)
+            logger.debug("--")
+            logger.debug(e.stdout)
+
+            # Appending pipenv to modes to attempt to get some python dependencies if poetry fails
+            modes.append("pipenv")
+
+    if "pipenv" in modes:
+        sbom = update_sbom_from_virtualenv(sbom, package_name)
+
+    return sbom
+
+
+def scan_javascript(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
+    if "npm" in modes:
+        sbom = update_sbom_from_npm(sbom, package_name)
+
+    if "yarn" in modes:
+        sbom = update_sbom_from_yarn(sbom, package_name)
+
+    return sbom
+
+
+def scan_filesystem(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
+
+    if "fs" in modes:
+        sbom = update_sbom_from_filesystem(sbom, package_name)
+
+    return sbom
 
 
 def scan(
@@ -50,37 +95,16 @@ def scan(
     if any(mode not in get_all_modes() for mode in modes) or len(modes) == 0:
         raise Exception("Invalid scanning method: " + str(modes))
 
-    if "pipenv" in modes:
-        venv = VirtualEnv()
-        venv.enter()
-
-        venv.install_package(package_name)
-        requirements_file = venv.create_requirements_file_from_env()
-
-        sbom = update_sbom_from_requirements(sbom, requirements_file)
-
-        venv.exit()
-
-    if "python-requirements" in modes:
-        sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
-
-    if "poetry" in modes:
-        sbom = update_sbom_from_poetry(sbom, package_name)
-
-    if "npm" in modes:
-        sbom = update_sbom_from_npm(sbom, package_name)
-
-    if "yarn" in modes:
-        sbom = update_sbom_from_yarn(sbom, package_name)
-
-    if "fs" in modes:
-        sbom = update_sbom_from_filesystem(sbom, package_name)
+    # Enrich the sbom based on the scans provided
+    sbom = scan_python(modes, sbom, package_name)
+    sbom = scan_javascript(modes, sbom, package_name)
+    sbom = scan_filesystem(modes, sbom, package_name)
 
     # Update sbom to contain the local environment
     env = get_environment_details(package_name)
     sbom.update_environment(env)
 
-    logger.info(f"Scanning {len(sbom.get_components())}")
+    logger.info(f"Scanning {len(sbom.get_components())} components")
 
     if not local_scan:
         ossprey = Ossprey(url, api_key)

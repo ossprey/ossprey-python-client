@@ -7,7 +7,7 @@ from ossprey.main import main
 
 def test_main_function(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["script.py"])
-    monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math")
+    monkeypatch.setenv("INPUT_PACKAGE", "test/test_packages/python_simple_math")
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
     monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
 
@@ -23,7 +23,7 @@ def test_main_function(monkeypatch, capsys):
 
 def test_main_function_with_output(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["script.py"])
-    monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math")
+    monkeypatch.setenv("INPUT_PACKAGE", "test/test_packages/python_simple_math")
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
     monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
     monkeypatch.setenv("INPUT_OUTPUT", "sbom_output.json")
@@ -44,12 +44,12 @@ def test_main_function_with_output(monkeypatch, capsys):
         os.remove("sbom_output.json")
 
 
-@pytest.mark.parametrize("soft_error, expected_ret", [
-    ("True", 0),
-    ("False", 1)])
+@pytest.mark.parametrize("soft_error, expected_ret", [("True", 0), ("False", 1)])
 def test_main_function_soft_error(monkeypatch, soft_error, expected_ret):
     monkeypatch.setattr("sys.argv", ["script.py"])
-    monkeypatch.setenv("INPUT_PACKAGE", "test/python_simple_math_no_exist")
+    monkeypatch.setenv(
+        "INPUT_PACKAGE", "test/test_packages/python_simple_math_no_exist"
+    )
     monkeypatch.setenv("INPUT_MODE", "python-requirements")
     monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
     monkeypatch.setenv("INPUT_SOFT_ERROR", soft_error)
@@ -59,3 +59,13 @@ def test_main_function_soft_error(monkeypatch, soft_error, expected_ret):
 
     assert excinfo.value.code == expected_ret
 
+
+def test_main_function_with_broken_poetry(monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["script.py"])
+    monkeypatch.setenv("INPUT_PACKAGE", "test/test_packages/poetry_broken_simple_math")
+    monkeypatch.setenv("INPUT_DRY_RUN_SAFE", "True")
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code == 0
