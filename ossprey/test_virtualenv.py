@@ -10,7 +10,7 @@ def test_virtual_env_creation() -> None:
     venv = VirtualEnv()
 
     # Check if the virtual environment files exist
-    assert os.path.isdir(os.path.join(venv.get_venv_dir(), 'bin'))
+    assert os.path.isdir(os.path.join(venv.get_venv_dir(), "bin"))
 
 
 def test_accessing_virtual_env() -> None:
@@ -24,7 +24,7 @@ def test_accessing_virtual_env() -> None:
 
     # Make sure we are in a new venv
     assert len(installed_packages) == 1
-    assert installed_packages[0]['name'] == 'pip'
+    assert installed_packages[0]["name"] == "pip"
 
 
 def test_package_installation() -> None:
@@ -32,27 +32,27 @@ def test_package_installation() -> None:
     venv.enter()
 
     # Install a package
-    venv.install_package('numpy')
+    venv.install_package("numpy")
 
     installed_packages = venv.list_installed_packages()
 
     # Make sure we are in a new venv
     assert len(installed_packages) == 2
-    assert any(map(lambda x: x['name'] == 'numpy', installed_packages))
+    assert any(map(lambda x: x["name"] == "numpy", installed_packages))
 
 
 def test_local_requirements_file() -> None:
     venv = VirtualEnv()
     venv.enter()
-    venv.install_package('numpy')
+    venv.install_package("numpy")
 
     requirements_file = venv.create_requirements_file_from_env()
 
     # Read the file
-    with open(requirements_file, 'r') as f:
+    with open(requirements_file, "r") as f:
         lines = f.readlines()
         assert len(lines) == 1
-        assert lines[0].startswith('numpy')
+        assert lines[0].startswith("numpy")
 
 
 def test_local_installation() -> None:
@@ -60,10 +60,10 @@ def test_local_installation() -> None:
     venv.enter()
 
     # Install a package
-    venv.install_package('test/python_simple_math')
+    venv.install_package("test/test_packages/python_simple_math")
 
     installed_packages = venv.list_installed_packages()
 
     # Make sure we are in a new venv
     assert len(installed_packages) == 8
-    assert any(map(lambda x: x['name'] == 'numpy', installed_packages))
+    assert any(map(lambda x: x["name"] == "numpy", installed_packages))
