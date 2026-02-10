@@ -39,4 +39,4 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          poetry run pytest test/smoke/test_smoke.py
+          poetry run pytest test/smoke/test_smoke.py -m "not network and not slow"
