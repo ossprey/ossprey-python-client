@@ -134,6 +134,8 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     return ossbom
 
 
+def update_sbom_from_virtualenv(ossbom: OSSBOM, package_name: str) -> OSSBOM:
+    venv = VirtualEnv()
     try:
         venv.install_package(package_name)
         requirements_file = venv.create_requirements_file_from_env()
