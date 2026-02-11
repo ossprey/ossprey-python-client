@@ -5,6 +5,12 @@ import os
 from subprocess import CalledProcessError
 
 from ossprey.environment import get_environment_details
+from ossprey.exceptions import (
+    InvalidScanModeException,
+    MissingPackageException,
+    NoPackageManagerException,
+    ScanFailedException,
+)
 from ossprey.modes import get_modes, get_all_modes
 from ossprey.sbom_python import (
     update_sbom_from_requirements,
@@ -80,7 +86,7 @@ def scan(
         modes = get_modes(package_name)
         if len(modes) == 0:
             logger.error("No package manager found")
-            raise Exception("No package manager found in the directory")
+            raise NoPackageManagerException("No package manager found in the directory")
     else:
         modes = [mode]
 
@@ -88,12 +94,12 @@ def scan(
     # If package location doesn't exist, raise an error
     if not os.path.exists(package_name):
         logger.error(f"Package {package_name} does not exist")
-        raise Exception(f"Package {package_name} does not exist")
+        raise MissingPackageException(f"Package {package_name} does not exist")
 
     sbom = OSSBOM()
 
     if any(mode not in get_all_modes() for mode in modes) or len(modes) == 0:
-        raise Exception("Invalid scanning method: " + str(modes))
+        raise InvalidScanModeException("Invalid scanning method: " + str(modes))
 
     # Enrich the sbom based on the scans provided
     sbom = scan_python(modes, sbom, package_name)
@@ -114,7 +120,7 @@ def scan(
 
         sbom = ossprey.validate(sbom)
         if not sbom:
-            raise Exception("Issue OSSPREY Service")
+            raise ScanFailedException("Issue OSSPREY Service")
 
         # Convert to OSSBOM
         sbom = SBOMConverterFactory.from_minibom(sbom)
