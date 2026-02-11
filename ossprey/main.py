@@ -4,6 +4,7 @@ import logging
 import sys
 
 from ossprey.args import parse_arguments
+from ossprey.exceptions import MaliciousPackageException
 from ossprey.github_actions_reporter import print_gh_action_errors
 from ossprey.log import init_logging
 from ossprey.scan import scan
@@ -43,7 +44,7 @@ def main() -> None:
             ret = print_gh_action_errors(sbom, args.package, args.github_comments)
 
             if not ret:
-                raise Exception("Error Malicious Package Found")
+                raise MaliciousPackageException("Error Malicious Package Found")
 
         sys.exit(0)
 

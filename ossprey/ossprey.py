@@ -8,6 +8,13 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from typing import Tuple, Final
 
+from ossprey.exceptions import (
+    MissingAPIKeyException,
+    MissingSBOMException,
+    ScanFailedException,
+    ScanTimeoutException,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,7 +25,7 @@ class Ossprey:
         self.api_key = api_key
 
         if not self.api_key:
-            raise Exception("API Key is null or empty")
+            raise MissingAPIKeyException("API Key is null or empty")
 
         self.session = self.create_session()
 
@@ -76,17 +83,17 @@ class Ossprey:
                 logger.error("Error returned when retrieving the results")
                 logger.debug(f"Status code: {response.status_code}")
                 logger.debug(f"Response: {response.text}")
-                raise Exception("Error returned when retrieving the results")
+                raise ScanFailedException("Error returned when retrieving the results")
 
             ret = response.json()
             if ret["status"] == "SUCCEEDED":
                 if "output" in ret:
                     return ret["output"]
                 else:
-                    raise Exception("Error no SBOM returned")
+                    raise MissingSBOMException("Error no SBOM returned")
 
         logger.error("Scan took too long to complete")
-        raise Exception("Scan took too long to complete")
+        raise ScanTimeoutException("Scan took too long to complete")
 
     @staticmethod
     def create_session() -> requests.Session:
