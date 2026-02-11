@@ -11,7 +11,6 @@ from typing import Tuple, Final
 from ossprey.exceptions import (
     MissingAPIKeyException,
     MissingSBOMException,
-    MissingSBOMException,
     ScanFailedException,
     ScanTimeoutException,
 )
