@@ -142,6 +142,9 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
         raise PoetryNotFoundError("poetry command not found in PATH")
 
     if not os.path.exists(os.path.join(package_dir, "poetry.lock")):
+        # Check if poetry is installed (only needed when generating poetry.lock)
+        if not shutil.which("poetry"):
+            raise PoetryNotFoundError("poetry command not found in PATH")
         # Run poetry install to generate the poetry.lock file
         # Note: poetry can handle both poetry-native projects and standard PEP 621 pyproject.toml
         try:
