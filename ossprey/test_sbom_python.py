@@ -1,8 +1,9 @@
 from __future__ import annotations
 import sys
+import subprocess
 from pathlib import Path
+from unittest.mock import patch, mock_open
 import pytest
-from unittest.mock import patch
 
 from ossprey.sbom_python import (
     create_sbom_from_env,
@@ -95,9 +96,6 @@ def test_poetry_not_found_error(mock_which, mock_exists):
 @patch("shutil.which", return_value="/usr/bin/poetry")
 def test_not_a_poetry_project_error(mock_which, mock_exists, mock_run):
     """Test that NotAPoetryProjectError is raised when pyproject.toml doesn't contain poetry configuration."""
-    import subprocess
-    from unittest.mock import mock_open
-    
     # Mock os.path.exists to return False for poetry.lock, True for pyproject.toml
     def exists_side_effect(path):
         if "poetry.lock" in path:
@@ -148,7 +146,7 @@ def test_fallback_to_pipenv_on_poetry_not_found(mock_update_poetry, mock_update_
     # Verify that pipenv was called as fallback
     mock_update_venv.assert_called_once()
     
-    # Verify that pipenv was added to modes
+    # Verify that pipenv was added to modes (scan_python modifies the list in place)
     assert "pipenv" in modes
 
 
@@ -177,5 +175,5 @@ def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_upd
     # Verify that pipenv was called as fallback
     mock_update_venv.assert_called_once()
     
-    # Verify that pipenv was added to modes
+    # Verify that pipenv was added to modes (scan_python modifies the list in place)
     assert "pipenv" in modes
