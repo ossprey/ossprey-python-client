@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import sys
 import subprocess
 from pathlib import Path
@@ -98,15 +99,17 @@ def test_not_a_poetry_project_error(mock_which, mock_exists, mock_run):
     """Test that NotAPoetryProjectError is raised when pyproject.toml doesn't contain poetry configuration."""
     # Mock os.path.exists to return False for poetry.lock, True for pyproject.toml
     def exists_side_effect(path):
-        if "poetry.lock" in path:
+        # Use basename to avoid false positives from paths containing these strings
+        basename = os.path.basename(path)
+        if basename == "poetry.lock":
             return False
-        elif "pyproject.toml" in path:
+        elif basename == "pyproject.toml":
             return True
         return False
     
     mock_exists.side_effect = exists_side_effect
     
-    # Mock subprocess.run to raise CalledProcessError
+    # Mock subprocess.run to raise CalledProcessError for "poetry install" command
     mock_run.side_effect = subprocess.CalledProcessError(
         returncode=1, 
         cmd=["poetry", "install"],
