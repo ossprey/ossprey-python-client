@@ -40,7 +40,7 @@ def scan_python(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
             sbom = update_sbom_from_poetry(sbom, package_name)
         except NotAPoetryProjectError:
             logger.warning(
-                "pyproject.toml found but not a poetry project, attempting pipenv scan instead"
+                "Not a valid poetry project, attempting pipenv scan instead"
             )
             modes.append("pipenv")
         except PoetryNotFoundError:
