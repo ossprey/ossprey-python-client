@@ -94,7 +94,7 @@ def scan(
         # Check the folder for files that map to different package managers
         modes = get_modes(package_name)
         if len(modes) == 0:
-            logger.error("No package manager found")
+            logger.warning("No package manager found")
             raise NoPackageManagerException("No package manager found in the directory")
     else:
         modes = [mode]
