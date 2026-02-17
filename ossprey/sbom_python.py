@@ -14,6 +14,7 @@ from ossbom.model.ossbom import OSSBOM
 from ossbom.model.component import Component
 
 from ossprey.virtualenv import VirtualEnv
+from ossprey.exceptions import PoetryNotFoundError, NotAPoetryProjectError
 
 logger = logging.getLogger(__name__)
 
@@ -109,18 +110,6 @@ def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[PackageURL
     return purls
 
 
-class PoetryNotFoundError(Exception):
-    """Raised when poetry command is not available."""
-
-    pass
-
-
-class NotAPoetryProjectError(Exception):
-    """Raised when the directory doesn't contain a valid poetry project."""
-
-    pass
-
-
 def _is_poetry_project(package_dir: str) -> bool:
     """Check if the directory contains a valid poetry project."""
     pyproject_path = os.path.join(package_dir, "pyproject.toml")
@@ -147,6 +136,10 @@ def _is_poetry_project(package_dir: str) -> bool:
 
 
 def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+
+    # Check if poetry is installed
+    if not shutil.which("poetry"):
+        raise PoetryNotFoundError("poetry command not found in PATH")
 
     if not os.path.exists(os.path.join(package_dir, "poetry.lock")):
         # Check if poetry is installed (only needed when generating poetry.lock)
