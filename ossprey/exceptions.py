@@ -28,3 +28,15 @@ class MissingSBOMException(Exception):
 
 class ScanTimeoutException(Exception):
     pass
+
+
+class PoetryNotFoundError(Exception):
+    """Raised when poetry command is not available."""
+
+    pass
+
+
+class NotAPoetryProjectError(Exception):
+    """Raised when the directory doesn't contain a valid poetry project."""
+
+    pass

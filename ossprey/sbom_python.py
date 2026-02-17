@@ -14,6 +14,7 @@ from ossbom.model.ossbom import OSSBOM
 from ossbom.model.component import Component
 
 from ossprey.virtualenv import VirtualEnv
+from ossprey.exceptions import PoetryNotFoundError, NotAPoetryProjectError
 
 logger = logging.getLogger(__name__)
 
@@ -107,18 +108,6 @@ def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[PackageURL
         purls.append(purl)
 
     return purls
-
-
-class PoetryNotFoundError(Exception):
-    """Raised when poetry command is not available."""
-
-    pass
-
-
-class NotAPoetryProjectError(Exception):
-    """Raised when the directory doesn't contain a valid poetry project."""
-
-    pass
 
 
 def _is_poetry_project(package_dir: str) -> bool:
