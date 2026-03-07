@@ -46,8 +46,8 @@ class VirtualEnv:
                 )
         except subprocess.CalledProcessError as e:
             logger.error(f"An error occurred while executing {' '.join(command)}':")
-            logger.error(f"stdout:\n{e.stdout}")
-            logger.error(f"stderr:\n{e.stderr}")
+            logger.debug(f"stdout:\n{e.stdout}")
+            logger.debug(f"stderr:\n{e.stderr}")
             # Throw the exception to the caller
             raise e
 
