@@ -5,11 +5,14 @@ import subprocess
 from pathlib import Path
 from unittest.mock import patch, mock_open
 import pytest
+import tempfile
 
 from ossprey.sbom_python import (
     create_sbom_from_env,
     create_sbom_from_requirements,
     get_cyclonedx_binary,
+    get_poetry_purls_from_lock,
+    _is_poetry_project,
     update_sbom_from_poetry,
     update_sbom_from_virtualenv,
     PoetryNotFoundError,
@@ -180,3 +183,115 @@ def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_upd
     
     # Verify that pipenv was added to modes (scan_python modifies the list in place)
     assert "pipenv" in modes
+
+
+def test_create_sbom_from_requirements_called_process_error():
+    """Test that CalledProcessError is re-raised from create_sbom_from_requirements."""
+    with patch("ossprey.sbom_python.get_cyclonedx_binary", return_value="cyclonedx-py"), \
+         patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["cyclonedx-py", "requirements"], stderr="error"
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            create_sbom_from_requirements("/tmp/requirements.txt")
+
+
+def test_create_sbom_from_env_called_process_error():
+    """Test that CalledProcessError is re-raised from create_sbom_from_env."""
+    with patch("ossprey.sbom_python.get_cyclonedx_binary", return_value="cyclonedx-py"), \
+         patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["cyclonedx-py", "environment"], stderr="error"
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            create_sbom_from_env()
+
+
+def test_get_poetry_purls_from_lock():
+    """Test that get_poetry_purls_from_lock reads packages from a poetry.lock file."""
+    lock_content = b"""
+[[package]]
+name = "requests"
+version = "2.31.0"
+description = "HTTP for Humans"
+
+[[package]]
+name = "numpy"
+version = "1.24.0"
+description = "Numerical Python"
+"""
+    with tempfile.NamedTemporaryFile(suffix=".lock", delete=False) as f:
+        f.write(lock_content)
+        lock_path = f.name
+
+    try:
+        purls = get_poetry_purls_from_lock(lock_path)
+        names = [p.name for p in purls]
+        assert "requests" in names
+        assert "numpy" in names
+        assert len(purls) == 2
+    finally:
+        os.unlink(lock_path)
+
+
+def test_is_poetry_project_with_tool_poetry_section(tmp_path):
+    """Test that _is_poetry_project returns True for [tool.poetry] section."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[tool.poetry]\nname = "my-project"\n')
+
+    assert _is_poetry_project(str(tmp_path)) is True
+
+
+def test_is_poetry_project_with_poetry_build_backend(tmp_path):
+    """Test that _is_poetry_project returns True for poetry-core build backend."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[build-system]\nbuild-backend = "poetry.core.masonry.api"\n')
+
+    assert _is_poetry_project(str(tmp_path)) is True
+
+
+def test_is_poetry_project_false_for_setuptools(tmp_path):
+    """Test that _is_poetry_project returns False for non-poetry projects."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[build-system]\nbuild-backend = "setuptools.build_meta"\n')
+
+    assert _is_poetry_project(str(tmp_path)) is False
+
+
+def test_is_poetry_project_no_pyproject(tmp_path):
+    """Test that _is_poetry_project returns False when pyproject.toml doesn't exist."""
+    assert _is_poetry_project(str(tmp_path)) is False
+
+
+def test_update_sbom_from_poetry_with_existing_lock():
+    """Test that update_sbom_from_poetry reads from existing poetry.lock."""
+    ossbom = OSSBOM()
+    result = update_sbom_from_poetry(ossbom, "test/test_packages/poetry_simple_math")
+
+    assert isinstance(result, OSSBOM)
+    names = [c.name for c in result.get_components()]
+    assert "requests" in names
+    assert "numpy" in names
+
+
+def test_is_poetry_project_exception_reading_toml(tmp_path):
+    """Test that _is_poetry_project returns False when reading pyproject.toml raises an error."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[tool.poetry]\nname = "test"\n')
+
+    with patch("builtins.open", side_effect=OSError("permission denied")):
+        assert _is_poetry_project(str(tmp_path)) is False
+
+
+def test_update_sbom_from_poetry_is_poetry_project_called_process_error(tmp_path):
+    """Test that CalledProcessError is re-raised for a valid poetry project."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[tool.poetry]\nname = "test"\n')
+
+    with patch("shutil.which", return_value="/usr/bin/poetry"), \
+         patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["poetry", "install"], stderr="dependency error"
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            update_sbom_from_poetry(ossbom=OSSBOM(), package_dir=str(tmp_path))
