@@ -422,3 +422,39 @@ def test__iter_yarn_lock_files(tmp_path):
     assert d.type == "npm"
     assert d.source == {"yarn.lock"}
     assert d.location == [str(tmp_path)]
+
+
+def test_iter_paths_yields_directories_with_no_dir_only(tmp_path: Path) -> None:
+    """Test that iter_paths yields matching directory names when dir_only=False."""
+    subdir = tmp_path / "matching_dir"
+    subdir.mkdir()
+    (tmp_path / "other_file.txt").write_text("content")
+
+    results = list(fs.iter_paths(tmp_path, wildcard="matching_dir", dir_only=False))
+
+    assert any(p.name == "matching_dir" for p in results)
+
+
+def test_get_direct_url_exception(tmp_path: Path) -> None:
+    """Test that _get_direct_url returns None when reading the file raises an exception."""
+    dist = tmp_path / "bad.dist-info"
+    dist.mkdir()
+    direct_url = dist / "direct_url.json"
+    direct_url.write_text("invalid json {{{")
+
+    result = fs._get_direct_url(dist)
+
+    # Invalid JSON should be silently ignored
+    assert result is None
+
+
+def test_github_repo_from_direct_url_empty_url() -> None:
+    """Test that _github_repo_from_direct_url returns None for an empty URL."""
+    result = fs._github_repo_from_direct_url({"url": ""})
+    assert result is None
+
+
+def test_github_repo_from_direct_url_short_path() -> None:
+    """Test that _github_repo_from_direct_url returns None for GitHub URL with < 2 path parts."""
+    result = fs._github_repo_from_direct_url({"url": "https://github.com/onlyone"})
+    assert result is None

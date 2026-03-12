@@ -71,7 +71,7 @@ def update_sbom_from_docker(ossbom: OSSBOM, project_folder: str = "/") -> OSSBOM
                     type=ptype,
                     env=DependencyEnv.PROD,
                     source=source,
-                    locations=sorted(locs),  # <-- list[str]
+                    location=sorted(locs),
                 )
             ]
         )

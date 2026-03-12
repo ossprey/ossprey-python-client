@@ -69,3 +69,28 @@ def test_main_function_with_broken_poetry(monkeypatch, capsys):
         main()
 
     assert excinfo.value.code == 0
+
+
+def test_main_dry_run_malicious_exits_1(monkeypatch):
+    """Test that dry-run-malicious mode exits 1 when a vulnerability is found."""
+    monkeypatch.setattr("sys.argv", ["script.py"])
+    monkeypatch.setenv("INPUT_PACKAGE", "test/test_packages/python_simple_math")
+    monkeypatch.setenv("INPUT_MODE", "python-requirements")
+    monkeypatch.setenv("INPUT_DRY_RUN_MALICIOUS", "True")
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code == 1
+
+
+def test_main_verbose_exception_logging(monkeypatch):
+    """Test that verbose mode logs exceptions with full stack trace."""
+    monkeypatch.setattr("sys.argv", ["script.py", "--verbose", "--dry-run-safe"])
+    monkeypatch.setenv("INPUT_PACKAGE", "test/test_packages/nonexistent_package")
+    monkeypatch.setenv("INPUT_MODE", "python-requirements")
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code == 1
