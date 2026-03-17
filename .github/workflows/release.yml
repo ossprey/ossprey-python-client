@@ -54,6 +54,14 @@ jobs:
         run: |
           poetry run pytest
 
+      - name: Verify package install and CLI entry point
+        run: |
+          poetry build
+          python -m venv /tmp/test-install
+          /tmp/test-install/bin/pip install dist/ossprey-*.whl
+          /tmp/test-install/bin/ossprey --help
+          rm -rf /tmp/test-install
+
       - name: Tag and push
         if: env.TEST != 'true'
         run: |
