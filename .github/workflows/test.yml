@@ -31,6 +31,14 @@ jobs:
           poetry install
           poetry run pytest
 
+      - name: Verify package install and CLI entry point
+        run: |
+          poetry build
+          python -m venv /tmp/test-install
+          /tmp/test-install/bin/pip install dist/ossprey-*.whl
+          /tmp/test-install/bin/ossprey --help
+          rm -rf /tmp/test-install
+
       - name: Run Runtime Tests
         run: |
           poetry run python -m ossprey --dry-run-safe --package test/test_packages/npm_simple_math/ --mode npm
