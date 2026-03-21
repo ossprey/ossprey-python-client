@@ -313,14 +313,14 @@
     tslib "^2.3.0"
     xhr2 "^0.2.0"
 
-"@angular/platform-webworker-dynamic@^19.1.5":
+"@angular/platform-webworker-dynamic@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker-dynamic/-/platform-webworker-dynamic-10.2.5.tgz#04fc364088a3730485a89450c2eabf6a3826c120"
   integrity sha512-34ihn175vQDLyvtDHahLOHDhzTUOjetQNg+vRF5zP3q+znbfvMYzB2+UCx9cduap4Dq0F9c1RwXYThS539Jzxw==
   dependencies:
     tslib "^2.0.0"
 
-"@angular/platform-webworker@^19.1.5":
+"@angular/platform-webworker@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker/-/platform-webworker-10.2.5.tgz#f04cf5d7a3c444fffd8791fa2d0e1f3fb3bd4ab7"
   integrity sha512-pJ7o/n4/VUwDqI6NTaAkKKT7Md6BilD0aWjmiDhZrWqgz5wrlhl6II07XGIt0b1pZuwXdR6CAz6yHSB0VmnOAQ==
@@ -10750,9 +10750,9 @@ flat@^5.0.2:
   integrity sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==
 
 flatted@^3.2.9, flatted@^3.3.2:
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/flatted/-/flatted-3.3.2.tgz#adba1448a9841bec72b42c532ea23dbbedef1a27"
-  integrity sha512-AiwGJM8YcNOaobumgtng+6NHuOqC3A7MixFeDafM3X9cIUM+xUXoS5Vfgf+OihAYe20fxqNM9yPBXJzRtZ/4eA==
+  version "3.4.2"
+  resolved "https://registry.yarnpkg.com/flatted/-/flatted-3.4.2.tgz#f5c23c107f0f37de8dbdf24f13722b3b98d52726"
+  integrity sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==
 
 fn.name@1.x.x:
   version "1.1.0"
