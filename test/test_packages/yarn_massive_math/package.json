@@ -31,7 +31,7 @@
     "@angular-devkit/core": "^19.1.6",
     "@angular-devkit/schematics": "^19.1.6",
     "@angular/cli": "^19.1.6",
-    "@nestjs/core": "^10.0.0",
+    "@nestjs/core": "^11.1.18",
     "@nestjs/common": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/platform-fastify": "^10.0.0",
