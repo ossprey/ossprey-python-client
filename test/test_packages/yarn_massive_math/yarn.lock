@@ -313,14 +313,14 @@
     tslib "^2.3.0"
     xhr2 "^0.2.0"
 
-"@angular/platform-webworker-dynamic@^19.1.5":
+"@angular/platform-webworker-dynamic@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker-dynamic/-/platform-webworker-dynamic-10.2.5.tgz#04fc364088a3730485a89450c2eabf6a3826c120"
   integrity sha512-34ihn175vQDLyvtDHahLOHDhzTUOjetQNg+vRF5zP3q+znbfvMYzB2+UCx9cduap4Dq0F9c1RwXYThS539Jzxw==
   dependencies:
     tslib "^2.0.0"
 
-"@angular/platform-webworker@^19.1.5":
+"@angular/platform-webworker@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker/-/platform-webworker-10.2.5.tgz#f04cf5d7a3c444fffd8791fa2d0e1f3fb3bd4ab7"
   integrity sha512-pJ7o/n4/VUwDqI6NTaAkKKT7Md6BilD0aWjmiDhZrWqgz5wrlhl6II07XGIt0b1pZuwXdR6CAz6yHSB0VmnOAQ==
@@ -3186,10 +3186,10 @@
   resolved "https://registry.yarnpkg.com/@nestjs/mapped-types/-/mapped-types-2.0.5.tgz#485d6b44e19779c98d04e52bd1d2bcc7001df0ea"
   integrity sha512-bSJv4pd6EY99NX9CjBIyn4TVDoSit82DUZlL4I3bqNfy5Gt+gXTa86i3I/i0iIV9P4hntcGM5GyO+FhZAhxtyg==
 
-"@nestjs/microservices@^10.0.0":
-  version "10.4.15"
-  resolved "https://registry.yarnpkg.com/@nestjs/microservices/-/microservices-10.4.15.tgz#9a5761145e46a9317717e06c89b84dd05fb1258b"
-  integrity sha512-t6hTvWnykF+C0mrCKJzhkyRQ8pChxrHn6Vc+mi0OViwJXzsQdRmy/m2xfQ9aeSC8B4MmGUvkK7UdH9fYbJW7gQ==
+"@nestjs/microservices@^11.1.19":
+  version "11.1.19"
+  resolved "https://registry.yarnpkg.com/@nestjs/microservices/-/microservices-11.1.19.tgz#0222ca2331a2a702df3b4dd6b7fd2fe7487fb39a"
+  integrity sha512-3Oja56ydTlSaui19/i7gYM0MMqz/w4UR2aqZeL4K8B+Fq0Ztg3zHb8et76atToJGpSCevJLEsoEMOMaGgzRwfg==
   dependencies:
     iterare "1.2.1"
     tslib "2.8.1"
