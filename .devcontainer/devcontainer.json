@@ -1,5 +1,6 @@
 {
     "name": "Ossprey",
+    "image": "mcr.microsoft.com/devcontainers/universal:latest",
     "customizations": {
         "vscode": {
             "extensions": [
