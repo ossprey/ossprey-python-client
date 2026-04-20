@@ -2,7 +2,8 @@
 	"name": "Ossprey",
 	"image": "mcr.microsoft.com/devcontainers/python:3.12",
 	"features": {
-		"ghcr.io/devcontainers-extra/features/poetry:2": {}
+		"ghcr.io/devcontainers-extra/features/poetry:2": {},
+		"ghcr.io/devcontainers/features/node:1": {}
 	},
 	"customizations": {
 		"vscode": {
