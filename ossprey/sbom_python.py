@@ -37,7 +37,7 @@ def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
         cmd = get_cyclonedx_binary()
         # This command generates an SBOM for the active virtual environment in JSON format
         result = subprocess.run(
-            [cmd, "requirements", requirements_file],
+            [cmd, "requirements", "--sv", "1.5", requirements_file],
             check=True,
             capture_output=True,
             text=True,
@@ -73,7 +73,7 @@ def create_sbom_from_env() -> OSSBOM:
         cmd = get_cyclonedx_binary()
         # This command generates an SBOM for the active virtual environment in JSON format
         result = subprocess.run(
-            [cmd, "environment"],
+            [cmd, "environment", "--sv", "1.5"],
             check=True,
             capture_output=True,
             text=True,
