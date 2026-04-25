@@ -16,7 +16,7 @@ packageurl-python = "^0.16.0"
 ossbom = "^1.0.12"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
+pytest = ">=8.3.3,<10.0.0"
 pytest-cov = "^5.0.0"
 taskipy = "^1.14.1"
 twine = "^6.1.0"
