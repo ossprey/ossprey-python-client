@@ -88,7 +88,7 @@ def create_sbom_from_env() -> OSSBOM:
         cmd = get_cyclonedx_binary()
         # This command generates an SBOM for the active virtual environment in JSON format
         result = subprocess.run(
-            [cmd, "environment"],
+            [cmd, "environment", "--sv", "1.5"],
             check=True,
             capture_output=True,
             text=True,
