@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import shutil
+import tempfile
 from pathlib import Path
 import tomllib
 from packageurl import PackageURL
@@ -34,22 +35,36 @@ def get_cyclonedx_binary() -> str:
 def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
 
     try:
-        cmd = get_cyclonedx_binary()
-        # This command generates an SBOM for the active virtual environment in JSON format
-        result = subprocess.run(
-            [cmd, "requirements", requirements_file],
-            check=True,
-            capture_output=True,
-            text=True,
-            env=os.environ.copy(),
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_file = os.path.join(tmpdir, "out.json")
+            subprocess.run(
+                [
+                    sys.executable, "-m", "pip", "install",
+                    "--dry-run",
+                    "--report", report_file,
+                    "--only-binary=:all:",
+                    "-r", requirements_file,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                env=os.environ.copy(),
+            )
+            with open(report_file) as f:
+                pip_report = json.load(f)
 
-        ret = result.stdout
-
-        cyclone_dict = json.loads(ret)
-
-        ossbom = SBOMConverterFactory.from_cyclonedx_dict(cyclone_dict)
-
+        ossbom = OSSBOM()
+        components = [
+            Component.create(
+                name=pkg["metadata"]["name"],
+                version=pkg["metadata"]["version"],
+                source="pip",
+                type="pypi",
+            )
+            for pkg in pip_report.get("install", [])
+            if pkg.get("metadata", {}).get("name") and pkg.get("metadata", {}).get("version")
+        ]
+        ossbom.add_components(components)
         return ossbom
 
     except subprocess.CalledProcessError as e:
@@ -141,44 +156,49 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     if not shutil.which("poetry"):
         raise PoetryNotFoundError("poetry command not found in PATH")
 
-    if not os.path.exists(os.path.join(package_dir, "poetry.lock")):
-        # Check if poetry is installed (only needed when generating poetry.lock)
-        if not shutil.which("poetry"):
-            raise PoetryNotFoundError("poetry command not found in PATH")
-        # Run poetry install to generate the poetry.lock file
-        # Note: poetry can handle both poetry-native projects and standard PEP 621 pyproject.toml
+    if os.path.exists(os.path.join(package_dir, "poetry.lock")):
+
+        # Get the packages from the poetry.lock file
+        purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
+
+        ossbom.add_components(
+            [
+                Component.create(
+                    name=purl.name, version=purl.version, source="poetry", type="pypi"
+                )
+                for purl in purls
+            ]
+        )
+
+    else:
         try:
             subprocess.run(
-                ["poetry", "install"],
+                ["poetry", "lock", "--no-update"],
                 cwd=package_dir,
                 check=True,
                 capture_output=True,
                 text=True,
             )
         except subprocess.CalledProcessError as e:
-            # If poetry install fails and this isn't a poetry project, raise a specific error
             if not _is_poetry_project(package_dir):
                 raise NotAPoetryProjectError(
                     f"Directory {package_dir} does not contain a valid poetry project "
-                    f"and poetry install failed"
+                    f"and poetry lock failed"
                 )
-            logger.error(f"Error running poetry install: {e}")
+            logger.error(f"Error running poetry lock: {e}")
             logger.debug(f"stderr: {e.stderr}")
             logger.debug(f"stdout: {e.stdout}")
-
             raise e
 
-    # Get the packages from the poetry.lock file
-    purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
-
-    ossbom.add_components(
-        [
-            Component.create(
-                name=purl.name, version=purl.version, source="poetry", type="pypi"
-            )
-            for purl in purls
-        ]
-    )
+        purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
+        ossbom.add_components(
+            [
+                Component.create(
+                    name=purl.name, version=purl.version, source="poetry", type="pypi"
+                )
+                for purl in purls
+            ]
+        )
 
     return ossbom
 

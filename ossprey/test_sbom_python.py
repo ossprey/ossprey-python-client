@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import os
 import sys
 import subprocess
@@ -46,22 +47,37 @@ def test_get_sbom_from_venv():
     assert any(map(lambda x: x.name == "numpy", sbom.components.values()))
 
 
-def test_get_sbom_from_venv_local_package():
+def test_create_sbom_from_requirements_parses_pip_report(tmp_path):
+    """Test that create_sbom_from_requirements correctly parses pip's JSON report."""
+    pip_report = {
+        "version": "1",
+        "pip_version": "24.0",
+        "install": [
+            {"metadata": {"name": "simple_math", "version": "0.1.0"}},
+            {"metadata": {"name": "requests", "version": "2.26.0"}},
+            {"metadata": {"name": "numpy", "version": "2.0.0"}},
+            {"metadata": {"name": "certifi", "version": "2023.1.1"}},
+            {"metadata": {"name": "charset-normalizer", "version": "2.0.0"}},
+            {"metadata": {"name": "idna", "version": "3.3"}},
+            {"metadata": {"name": "urllib3", "version": "1.26.7"}},
+        ],
+    }
 
-    venv = VirtualEnv()
-    venv.enter()
+    requirements_file = tmp_path / "requirements.txt"
+    requirements_file.write_text("simple_math==0.1.0\n")
 
-    # Install a package
-    venv.install_package("test/test_packages/python_simple_math")
+    def fake_run(cmd, **kwargs):
+        report_path = cmd[cmd.index("--report") + 1]
+        with open(report_path, "w") as f:
+            json.dump(pip_report, f)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
-    requirements_file = venv.create_requirements_file_from_env()
-
-    # Get the SBOM
-    sbom = create_sbom_from_requirements(requirements_file)
+    with patch("subprocess.run", side_effect=fake_run):
+        sbom = create_sbom_from_requirements(str(requirements_file))
 
     assert sbom.format == "OSSBOM"
     assert len(sbom.components) == 7
-    assert any(map(lambda x: x.name == "simple_math", sbom.components.values()))
+    assert any(c.name == "simple_math" for c in sbom.components.values())
 
 
 @patch("shutil.which")
@@ -112,10 +128,9 @@ def test_not_a_poetry_project_error(mock_which, mock_exists, mock_run):
     
     mock_exists.side_effect = exists_side_effect
     
-    # Mock subprocess.run to raise CalledProcessError for "poetry install" command
     mock_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, 
-        cmd=["poetry", "install"],
+        returncode=1,
+        cmd=["poetry", "lock", "--no-update"],
         output="",
         stderr="Error: not a poetry project"
     )
@@ -187,10 +202,9 @@ def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_upd
 
 def test_create_sbom_from_requirements_called_process_error():
     """Test that CalledProcessError is re-raised from create_sbom_from_requirements."""
-    with patch("ossprey.sbom_python.get_cyclonedx_binary", return_value="cyclonedx-py"), \
-         patch("subprocess.run") as mock_run:
+    with patch("subprocess.run") as mock_run:
         mock_run.side_effect = subprocess.CalledProcessError(
-            returncode=1, cmd=["cyclonedx-py", "requirements"], stderr="error"
+            returncode=1, cmd=[sys.executable, "-m", "pip", "install"], stderr="error"
         )
         with pytest.raises(subprocess.CalledProcessError):
             create_sbom_from_requirements("/tmp/requirements.txt")
@@ -274,6 +288,37 @@ def test_update_sbom_from_poetry_with_existing_lock():
     assert "numpy" in names
 
 
+def test_update_sbom_from_poetry_runs_lock_when_no_lockfile(tmp_path):
+    """When poetry.lock is absent, poetry lock --no-update is run and the new lockfile is read."""
+    lock_content = b"""
+[[package]]
+name = "requests"
+version = "2.31.0"
+description = "HTTP for Humans"
+
+[[package]]
+name = "numpy"
+version = "1.24.0"
+description = "Numerical Python"
+"""
+    lock_file = tmp_path / "poetry.lock"
+
+    def fake_run(cmd, **kwargs):
+        assert cmd == ["poetry", "lock", "--no-update"]
+        assert kwargs.get("cwd") == str(tmp_path)
+        lock_file.write_bytes(lock_content)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    with patch("shutil.which", return_value="/usr/bin/poetry"), \
+         patch("subprocess.run", side_effect=fake_run):
+        result = update_sbom_from_poetry(OSSBOM(), str(tmp_path))
+
+    names = [c.name for c in result.get_components()]
+    assert "requests" in names
+    assert "numpy" in names
+    assert len(result.get_components()) == 2
+
+
 def test_is_poetry_project_exception_reading_toml(tmp_path):
     """Test that _is_poetry_project returns False when reading pyproject.toml raises an error."""
     pyproject = tmp_path / "pyproject.toml"
@@ -291,7 +336,7 @@ def test_update_sbom_from_poetry_is_poetry_project_called_process_error(tmp_path
     with patch("shutil.which", return_value="/usr/bin/poetry"), \
          patch("subprocess.run") as mock_run:
         mock_run.side_effect = subprocess.CalledProcessError(
-            returncode=1, cmd=["poetry", "install"], stderr="dependency error"
+            returncode=1, cmd=["poetry", "lock", "--no-update"], stderr="dependency error"
         )
         with pytest.raises(subprocess.CalledProcessError):
             update_sbom_from_poetry(ossbom=OSSBOM(), package_dir=str(tmp_path))
