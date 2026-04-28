@@ -17,6 +17,29 @@ def can_report_to_github() -> bool:
     return not shutil.which("git") is None
 
 
+def report_scan_skipped(message: str, reset_at: Optional[str] = None, post_to_github: bool = False) -> None:
+    """Print a skip notice and optionally post it to the pull request summary."""
+    full_message = f"Ossprey scan skipped: {message}"
+    if reset_at:
+        full_message += f" Quota resets at {reset_at}."
+
+    print(full_message)
+    append_to_github_output("scan_skipped", "true")
+
+    if not post_to_github:
+        return
+
+    if not can_report_to_github():
+        logger.error("Git is not available, cannot post to GitHub")
+        return
+
+    details = create_github_details()
+    if details is None or not details.is_pull_request:
+        return
+
+    post_comment_to_github_summary(details.token, details.repo, details.pull_number, full_message)
+
+
 def print_gh_action_errors(sbom: OSSBOM, package_path: str, post_to_github: bool = False) -> bool:
     """
     Print the errors in a format that can be consumed by GitHub Actions

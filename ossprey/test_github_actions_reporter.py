@@ -13,6 +13,7 @@ from ossprey.github_actions_reporter import (
     can_report_to_github,
     post_comments_to_pull_request,
     post_comment_to_github_summary,
+    report_scan_skipped,
 )
 from ossbom.model.ossbom import OSSBOM
 from ossprey.github_actions_reporter import GitHubDetails
@@ -253,6 +254,52 @@ def test_create_github_details_pull_request_non_numeric(monkeypatch):
 
     assert details.is_pull_request is True
     assert details.commit_sha is None
+
+
+def test_report_scan_skipped_prints_and_appends_output():
+    """report_scan_skipped prints message and writes scan_skipped output flag."""
+    with patch("builtins.print") as mock_print, \
+         patch("ossprey.github_actions_reporter.append_to_github_output") as mock_append:
+        report_scan_skipped("Quota exhausted", "2026-04-29T00:00:00Z", post_to_github=False)
+
+    mock_print.assert_called_once()
+    printed = mock_print.call_args[0][0]
+    assert "Quota exhausted" in printed
+    assert "2026-04-29T00:00:00Z" in printed
+    mock_append.assert_called_once_with("scan_skipped", "true")
+
+
+def test_report_scan_skipped_posts_to_pull_request():
+    """When post_to_github is True and event is a PR, summary comment is posted."""
+    details_mock = MagicMock(is_pull_request=True, token="token", repo="repo", pull_number=1)
+
+    with patch("ossprey.github_actions_reporter.can_report_to_github", return_value=True), \
+         patch("ossprey.github_actions_reporter.create_github_details", return_value=details_mock), \
+         patch("ossprey.github_actions_reporter.append_to_github_output"), \
+         patch("ossprey.github_actions_reporter.post_comment_to_github_summary") as mock_post_summary, \
+         patch("builtins.print"):
+        report_scan_skipped("Quota exhausted", None, post_to_github=True)
+
+    mock_post_summary.assert_called_once()
+    args = mock_post_summary.call_args[0]
+    assert args[0] == "token"
+    assert args[1] == "repo"
+    assert args[2] == 1
+    assert "Quota exhausted" in args[3]
+
+
+def test_report_scan_skipped_no_post_when_not_pr():
+    """No summary comment when the workflow is not a pull request."""
+    details_mock = MagicMock(is_pull_request=False)
+
+    with patch("ossprey.github_actions_reporter.can_report_to_github", return_value=True), \
+         patch("ossprey.github_actions_reporter.create_github_details", return_value=details_mock), \
+         patch("ossprey.github_actions_reporter.append_to_github_output"), \
+         patch("ossprey.github_actions_reporter.post_comment_to_github_summary") as mock_post_summary, \
+         patch("builtins.print"):
+        report_scan_skipped("Quota exhausted", None, post_to_github=True)
+
+    mock_post_summary.assert_not_called()
 
 
 def test_create_github_details_pull_request_with_pr_number(monkeypatch):

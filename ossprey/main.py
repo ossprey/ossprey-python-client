@@ -4,10 +4,12 @@ import logging
 import sys
 
 from ossprey.args import parse_arguments
-from ossprey.exceptions import MaliciousPackageException
-from ossprey.github_actions_reporter import print_gh_action_errors
+from ossprey.exceptions import MaliciousPackageException, ScanSkippedException
+from ossprey.github_actions_reporter import print_gh_action_errors, report_scan_skipped
 from ossprey.log import init_logging
+from ossprey.ossprey import Ossprey
 from ossprey.scan import scan
+from ossprey.utils import format_quota_usage
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +45,18 @@ def main() -> None:
             # Process the result
             ret = print_gh_action_errors(sbom, args.package, args.github_comments)
 
+            if args.verbose and args.api_key:
+                quota = Ossprey(args.url, args.api_key).get_usage()
+                if quota:
+                    logger.info(format_quota_usage(quota))
+
             if not ret:
                 raise MaliciousPackageException("Error Malicious Package Found")
 
+        sys.exit(0)
+
+    except ScanSkippedException as e:
+        report_scan_skipped(e.message, e.reset_at, args.github_comments)
         sys.exit(0)
 
     except Exception as e:
