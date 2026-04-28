@@ -21,19 +21,24 @@ def main() -> None:
     init_logging(args.verbose)
 
     try:
-
         local_scan = None
+        client = None
+        
         if args.dry_run_safe:
             local_scan = "dry-run-safe"
         elif args.dry_run_malicious:
             local_scan = "dry-run-malicious"
+        else:
+            # Only create the client when doing a real API scan
+            client = Ossprey(args.url, args.api_key)
 
         sbom = scan(
             args.package,
             mode=args.mode,
             local_scan=local_scan,
+            client=client,
             url=args.url,
-            api_key=args.api_key,
+            api_key=args.api_key
         )
 
         if sbom:
@@ -45,8 +50,8 @@ def main() -> None:
             # Process the result
             ret = print_gh_action_errors(sbom, args.package, args.github_comments)
 
-            if args.verbose and args.api_key:
-                quota = Ossprey(args.url, args.api_key).get_usage()
+            if args.verbose and client:
+                quota = client.get_usage()
                 if quota:
                     logger.info(format_quota_usage(quota))
 

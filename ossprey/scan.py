@@ -84,6 +84,7 @@ def scan(
     package_name: str,
     mode: str = "auto",
     local_scan: str | None = None,
+    client: Ossprey | None = None,
     url: str | None = None,
     api_key: str | None = None,
 ) -> OSSBOM:
@@ -122,7 +123,7 @@ def scan(
     logger.info(f"Scanning {len(sbom.get_components())} components")
 
     if not local_scan:
-        ossprey = Ossprey(url, api_key)
+        ossprey = client if client else Ossprey(url, api_key)
 
         # Compress to MINIBOM
         sbom = SBOMConverterFactory.to_minibom(sbom)
