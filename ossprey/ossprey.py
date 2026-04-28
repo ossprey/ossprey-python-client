@@ -12,8 +12,10 @@ from ossprey.exceptions import (
     MissingAPIKeyException,
     MissingSBOMException,
     ScanFailedException,
+    ScanSkippedException,
     ScanTimeoutException,
 )
+from ossprey.models import QuotaUsage, ScanStatus
 
 logger = logging.getLogger(__name__)
 
@@ -86,14 +88,46 @@ class Ossprey:
                 raise ScanFailedException("Error returned when retrieving the results")
 
             ret = response.json()
-            if ret["status"] == "SUCCEEDED":
+            status = ScanStatus.from_str(ret.get("status"))
+
+            if status is ScanStatus.SUCCEEDED:
                 if "output" in ret:
                     return ret["output"]
-                else:
-                    raise MissingSBOMException("Error no SBOM returned")
+                raise MissingSBOMException("Error no SBOM returned")
+
+            if status is ScanStatus.SKIPPED:
+                raise ScanSkippedException(
+                    message=ret.get("message", "Scan skipped due to quota exhaustion"),
+                    reset_at=ret.get("reset_at"),
+                )
+
+            if status is ScanStatus.FAILED:
+                raise ScanFailedException(ret.get("message", "Scan failed"))
+
+            # RUNNING / PENDING -> continue polling
 
         logger.error("Scan took too long to complete")
         raise ScanTimeoutException("Scan took too long to complete")
+
+    def get_usage(self) -> QuotaUsage | None:
+        url = self.api_url + "/dashboard/v1/usage"
+        headers = {"Content-Type": "application/json", "x-api-key": self.api_key}
+
+        try:
+            response = self.session.get(url, headers=headers)
+        except requests.RequestException as e:
+            logger.debug(f"Usage request failed: {e}")
+            return None
+
+        if response.status_code != 200:
+            logger.debug(f"Usage endpoint returned {response.status_code}: {response.text}")
+            return None
+
+        try:
+            return QuotaUsage.from_dict(response.json())
+        except ValueError as e:
+            logger.debug(f"Failed to parse usage response: {e}")
+            return None
 
     @staticmethod
     def create_session() -> requests.Session:

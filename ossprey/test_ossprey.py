@@ -9,6 +9,7 @@ from ossprey.exceptions import (
     MissingAPIKeyException,
     MissingSBOMException,
     ScanFailedException,
+    ScanSkippedException,
     ScanTimeoutException,
 )
 
@@ -192,6 +193,70 @@ def test_wait_for_completion_timeout_raises():
     with patch.object(ossprey.session, "get", return_value=mock_response), \
          patch("time.sleep"):
         with pytest.raises(ScanTimeoutException):
+            ossprey.wait_for_completion("sbom-123", "scan-456")
+
+
+def test_wait_for_completion_skipped_raises():
+    """SKIPPED status raises ScanSkippedException with message and reset_at."""
+    ossprey = Ossprey("https://api.example.com", "test-api-key")
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "status": "SKIPPED",
+        "message": "Quota exhausted",
+        "reset_at": "2026-04-29T00:00:00Z",
+    }
+
+    with patch.object(ossprey.session, "get", return_value=mock_response), \
+         patch("time.sleep"):
+        with pytest.raises(ScanSkippedException) as excinfo:
+            ossprey.wait_for_completion("sbom-123", "scan-456")
+
+    assert excinfo.value.message == "Quota exhausted"
+    assert excinfo.value.reset_at == "2026-04-29T00:00:00Z"
+
+
+def test_wait_for_completion_status_case_insensitive():
+    """Lowercase status string parses to the same enum value."""
+    ossprey = Ossprey("https://api.example.com", "test-api-key")
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"status": "succeeded", "output": {"components": []}}
+
+    with patch.object(ossprey.session, "get", return_value=mock_response), \
+         patch("time.sleep"):
+        result = ossprey.wait_for_completion("sbom-123", "scan-456")
+
+    assert result == {"components": []}
+
+
+def test_wait_for_completion_failed_status_raises():
+    """FAILED status raises ScanFailedException with the API message."""
+    ossprey = Ossprey("https://api.example.com", "test-api-key")
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"status": "FAILED", "message": "boom"}
+
+    with patch.object(ossprey.session, "get", return_value=mock_response), \
+         patch("time.sleep"):
+        with pytest.raises(ScanFailedException, match="boom"):
+            ossprey.wait_for_completion("sbom-123", "scan-456")
+
+
+def test_wait_for_completion_unknown_status_raises():
+    """Unknown status string raises ValueError (tightened parsing)."""
+    ossprey = Ossprey("https://api.example.com", "test-api-key")
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"status": "NONSENSE"}
+
+    with patch.object(ossprey.session, "get", return_value=mock_response), \
+         patch("time.sleep"):
+        with pytest.raises(ValueError, match="unknown scan status"):
             ossprey.wait_for_completion("sbom-123", "scan-456")
 
 
