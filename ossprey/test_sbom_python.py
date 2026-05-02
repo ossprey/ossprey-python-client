@@ -13,6 +13,7 @@ from ossprey.sbom_python import (
     get_cyclonedx_binary,
     get_poetry_purls_from_lock,
     update_sbom_from_poetry,
+    update_sbom_from_pip_dry_run,
     update_sbom_from_virtualenv,
     NotAPoetryProjectError,
 )
@@ -91,10 +92,12 @@ def test_not_a_poetry_project_error(tmp_path):
         update_sbom_from_poetry(ossbom, str(tmp_path))
 
 
-@patch("ossprey.scan.update_sbom_from_virtualenv")
+@patch("ossprey.scan.update_sbom_from_pip_dry_run")
 @patch("ossprey.scan.update_sbom_from_poetry")
-def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_update_venv):
-    """Test that scan_python falls back to pipenv when NotAPoetryProjectError occurs."""
+def test_fallback_to_pip_dry_run_on_not_a_poetry_project(
+    mock_update_poetry, mock_update_dry_run
+):
+    """Test that scan_python falls back to pip --dry-run when poetry.lock is missing."""
     from ossprey.scan import scan_python
 
     mock_update_poetry.side_effect = NotAPoetryProjectError(
@@ -102,14 +105,72 @@ def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_upd
     )
 
     mock_sbom = OSSBOM()
-    mock_update_venv.return_value = mock_sbom
+    mock_update_dry_run.return_value = mock_sbom
 
     modes = ["poetry"]
     scan_python(modes, OSSBOM(), "/tmp/test_dir")
 
     mock_update_poetry.assert_called_once()
+    mock_update_dry_run.assert_called_once()
+    assert "pipenv" not in modes
+
+
+@patch("ossprey.scan.update_sbom_from_virtualenv")
+@patch("ossprey.scan.update_sbom_from_pip_dry_run")
+@patch("ossprey.scan.update_sbom_from_poetry")
+def test_fallback_to_pipenv_when_pip_dry_run_fails(
+    mock_update_poetry, mock_update_dry_run, mock_update_venv
+):
+    """If pip --dry-run also fails, scan_python falls back to pipenv."""
+    from ossprey.scan import scan_python
+
+    mock_update_poetry.side_effect = NotAPoetryProjectError(
+        "Directory /tmp/test_dir does not contain a poetry.lock file"
+    )
+    mock_update_dry_run.side_effect = subprocess.CalledProcessError(
+        returncode=1, cmd=["pip", "install", "--dry-run"], stderr="resolver error"
+    )
+    mock_update_venv.return_value = OSSBOM()
+
+    modes = ["poetry"]
+    scan_python(modes, OSSBOM(), "/tmp/test_dir")
+
+    mock_update_poetry.assert_called_once()
+    mock_update_dry_run.assert_called_once()
     mock_update_venv.assert_called_once()
     assert "pipenv" in modes
+
+
+def test_update_sbom_from_pip_dry_run_parses_report():
+    """update_sbom_from_pip_dry_run resolves and parses pip's JSON report."""
+    fake_report = {
+        "version": "1",
+        "install": [
+            {"metadata": {"name": "requests", "version": "2.31.0"}},
+            {"metadata": {"name": "numpy", "version": "1.24.0"}},
+            {"metadata": {"name": "", "version": "0"}},  # filtered out
+        ],
+    }
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout=__import__("json").dumps(fake_report), stderr=""
+    )
+    with patch("subprocess.run", return_value=completed):
+        ossbom = update_sbom_from_pip_dry_run(OSSBOM(), "/tmp/anything")
+
+    names = sorted(c.name for c in ossbom.get_components())
+    assert names == ["numpy", "requests"]
+
+
+def test_update_sbom_from_pip_dry_run_raises_on_pip_failure():
+    """update_sbom_from_pip_dry_run propagates CalledProcessError from pip."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1,
+            cmd=["pip", "install", "--dry-run"],
+            stderr="resolution-impossible",
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            update_sbom_from_pip_dry_run(OSSBOM(), "/tmp/anything")
 
 
 def test_create_sbom_from_requirements_called_process_error():

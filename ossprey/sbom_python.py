@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import shutil
+import tempfile
 from pathlib import Path
 import tomllib
 from packageurl import PackageURL
@@ -128,6 +129,54 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
         ]
     )
 
+    return ossbom
+
+
+def update_sbom_from_pip_dry_run(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+    """Resolve full dependency tree for a Python project via `pip install --dry-run --report`.
+
+    Does not actually install or build packages with C extensions. Uses PEP 658
+    metadata where available; falls back to metadata-only sdist preparation
+    otherwise. Works with any PEP 517 build backend (poetry-core, hatchling,
+    setuptools, flit) without requiring the corresponding CLI tool.
+    """
+    with tempfile.TemporaryDirectory(prefix="pip-dryrun-") as target_dir:
+        cmd = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--dry-run",
+            "--ignore-installed",
+            "--no-cache-dir",
+            "--quiet",
+            "--target",
+            target_dir,
+            "--report",
+            "-",
+            package_dir,
+        ]
+        result = subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            env=os.environ.copy(),
+        )
+
+    report = json.loads(result.stdout)
+    components = [
+        Component.create(
+            name=entry["metadata"]["name"],
+            version=entry["metadata"]["version"],
+            source="pip",
+            type="pypi",
+        )
+        for entry in report.get("install", [])
+        if entry.get("metadata", {}).get("name")
+        and entry.get("metadata", {}).get("version")
+    ]
+    ossbom.add_components(components)
     return ossbom
 
 
