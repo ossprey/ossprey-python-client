@@ -3,7 +3,7 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 import pytest
 import tempfile
 
@@ -12,10 +12,8 @@ from ossprey.sbom_python import (
     create_sbom_from_requirements,
     get_cyclonedx_binary,
     get_poetry_purls_from_lock,
-    _is_poetry_project,
     update_sbom_from_poetry,
     update_sbom_from_virtualenv,
-    PoetryNotFoundError,
     NotAPoetryProjectError,
 )
 from ossprey.virtualenv import VirtualEnv
@@ -86,74 +84,11 @@ def test_raises_when_not_found(mock_which, mock_exists):
         get_cyclonedx_binary()
 
 
-@patch("os.path.exists", return_value=False)
-@patch("shutil.which", return_value=None)
-def test_poetry_not_found_error(mock_which, mock_exists):
-    """Test that PoetryNotFoundError is raised when poetry command is not available."""
+def test_not_a_poetry_project_error(tmp_path):
+    """Test that NotAPoetryProjectError is raised when poetry.lock is missing."""
     ossbom = OSSBOM()
-    with pytest.raises(PoetryNotFoundError, match="poetry command not found in PATH"):
-        update_sbom_from_poetry(ossbom, "/tmp/test_dir")
-
-
-@patch("subprocess.run")
-@patch("os.path.exists")
-@patch("shutil.which", return_value="/usr/bin/poetry")
-def test_not_a_poetry_project_error(mock_which, mock_exists, mock_run):
-    """Test that NotAPoetryProjectError is raised when pyproject.toml doesn't contain poetry configuration."""
-    # Mock os.path.exists to return False for poetry.lock, True for pyproject.toml
-    def exists_side_effect(path):
-        # Use basename to avoid false positives from paths containing these strings
-        basename = os.path.basename(path)
-        if basename == "poetry.lock":
-            return False
-        elif basename == "pyproject.toml":
-            return True
-        return False
-    
-    mock_exists.side_effect = exists_side_effect
-    
-    # Mock subprocess.run to raise CalledProcessError for "poetry install" command
-    mock_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, 
-        cmd=["poetry", "install"],
-        output="",
-        stderr="Error: not a poetry project"
-    )
-    
-    # Mock pyproject.toml reading to return non-poetry project
-    mock_toml_data = b'[build-system]\nrequires = ["setuptools"]\n'
-    
-    with patch("builtins.open", mock_open(read_data=mock_toml_data)):
-        ossbom = OSSBOM()
-        with pytest.raises(NotAPoetryProjectError, match="does not contain a valid poetry project"):
-            update_sbom_from_poetry(ossbom, "/tmp/test_dir")
-
-
-@patch("ossprey.scan.update_sbom_from_virtualenv")
-@patch("ossprey.scan.update_sbom_from_poetry")
-def test_fallback_to_pipenv_on_poetry_not_found(mock_update_poetry, mock_update_venv):
-    """Test that scan_python falls back to pipenv when PoetryNotFoundError occurs."""
-    from ossprey.scan import scan_python
-    
-    # Make update_sbom_from_poetry raise PoetryNotFoundError
-    mock_update_poetry.side_effect = PoetryNotFoundError("poetry command not found in PATH")
-    
-    # Create a mock return value for virtualenv
-    mock_sbom = OSSBOM()
-    mock_update_venv.return_value = mock_sbom
-    
-    # Call scan_python with poetry mode
-    modes = ["poetry"]
-    result = scan_python(modes, OSSBOM(), "/tmp/test_dir")
-    
-    # Verify that poetry was attempted
-    mock_update_poetry.assert_called_once()
-    
-    # Verify that pipenv was called as fallback
-    mock_update_venv.assert_called_once()
-    
-    # Verify that pipenv was added to modes (scan_python modifies the list in place)
-    assert "pipenv" in modes
+    with pytest.raises(NotAPoetryProjectError, match="does not contain a poetry.lock"):
+        update_sbom_from_poetry(ossbom, str(tmp_path))
 
 
 @patch("ossprey.scan.update_sbom_from_virtualenv")
@@ -161,27 +96,19 @@ def test_fallback_to_pipenv_on_poetry_not_found(mock_update_poetry, mock_update_
 def test_fallback_to_pipenv_on_not_a_poetry_project(mock_update_poetry, mock_update_venv):
     """Test that scan_python falls back to pipenv when NotAPoetryProjectError occurs."""
     from ossprey.scan import scan_python
-    
-    # Make update_sbom_from_poetry raise NotAPoetryProjectError
+
     mock_update_poetry.side_effect = NotAPoetryProjectError(
-        "Directory /tmp/test_dir does not contain a valid poetry project"
+        "Directory /tmp/test_dir does not contain a poetry.lock file"
     )
-    
-    # Create a mock return value for virtualenv
+
     mock_sbom = OSSBOM()
     mock_update_venv.return_value = mock_sbom
-    
-    # Call scan_python with poetry mode
+
     modes = ["poetry"]
-    result = scan_python(modes, OSSBOM(), "/tmp/test_dir")
-    
-    # Verify that poetry was attempted
+    scan_python(modes, OSSBOM(), "/tmp/test_dir")
+
     mock_update_poetry.assert_called_once()
-    
-    # Verify that pipenv was called as fallback
     mock_update_venv.assert_called_once()
-    
-    # Verify that pipenv was added to modes (scan_python modifies the list in place)
     assert "pipenv" in modes
 
 
@@ -234,35 +161,6 @@ description = "Numerical Python"
         os.unlink(lock_path)
 
 
-def test_is_poetry_project_with_tool_poetry_section(tmp_path):
-    """Test that _is_poetry_project returns True for [tool.poetry] section."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(b'[tool.poetry]\nname = "my-project"\n')
-
-    assert _is_poetry_project(str(tmp_path)) is True
-
-
-def test_is_poetry_project_with_poetry_build_backend(tmp_path):
-    """Test that _is_poetry_project returns True for poetry-core build backend."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(b'[build-system]\nbuild-backend = "poetry.core.masonry.api"\n')
-
-    assert _is_poetry_project(str(tmp_path)) is True
-
-
-def test_is_poetry_project_false_for_setuptools(tmp_path):
-    """Test that _is_poetry_project returns False for non-poetry projects."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(b'[build-system]\nbuild-backend = "setuptools.build_meta"\n')
-
-    assert _is_poetry_project(str(tmp_path)) is False
-
-
-def test_is_poetry_project_no_pyproject(tmp_path):
-    """Test that _is_poetry_project returns False when pyproject.toml doesn't exist."""
-    assert _is_poetry_project(str(tmp_path)) is False
-
-
 def test_update_sbom_from_poetry_with_existing_lock():
     """Test that update_sbom_from_poetry reads from existing poetry.lock."""
     ossbom = OSSBOM()
@@ -272,26 +170,3 @@ def test_update_sbom_from_poetry_with_existing_lock():
     names = [c.name for c in result.get_components()]
     assert "requests" in names
     assert "numpy" in names
-
-
-def test_is_poetry_project_exception_reading_toml(tmp_path):
-    """Test that _is_poetry_project returns False when reading pyproject.toml raises an error."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(b'[tool.poetry]\nname = "test"\n')
-
-    with patch("builtins.open", side_effect=OSError("permission denied")):
-        assert _is_poetry_project(str(tmp_path)) is False
-
-
-def test_update_sbom_from_poetry_is_poetry_project_called_process_error(tmp_path):
-    """Test that CalledProcessError is re-raised for a valid poetry project."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_bytes(b'[tool.poetry]\nname = "test"\n')
-
-    with patch("shutil.which", return_value="/usr/bin/poetry"), \
-         patch("subprocess.run") as mock_run:
-        mock_run.side_effect = subprocess.CalledProcessError(
-            returncode=1, cmd=["poetry", "install"], stderr="dependency error"
-        )
-        with pytest.raises(subprocess.CalledProcessError):
-            update_sbom_from_poetry(ossbom=OSSBOM(), package_dir=str(tmp_path))

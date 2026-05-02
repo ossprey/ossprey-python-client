@@ -2,7 +2,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from subprocess import CalledProcessError
 
 from ossprey.environment import get_environment_details
 from ossprey.exceptions import (
@@ -17,7 +16,6 @@ from ossprey.sbom_python import (
     update_sbom_from_poetry,
     update_sbom_from_virtualenv,
     NotAPoetryProjectError,
-    PoetryNotFoundError,
 )
 from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
 from ossprey.sbom_filesystem import update_sbom_from_filesystem
@@ -39,21 +37,9 @@ def scan_python(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
         try:
             sbom = update_sbom_from_poetry(sbom, package_name)
         except NotAPoetryProjectError:
-            logger.warning(
-                "Not a valid poetry project, attempting pipenv scan instead"
+            logger.info(
+                "No poetry.lock found, attempting pipenv scan instead"
             )
-            modes.append("pipenv")
-        except PoetryNotFoundError:
-            logger.error("Poetry command not found, attempting pipenv scan instead")
-            modes.append("pipenv")
-        except CalledProcessError as e:
-            logger.error(
-                "Error running poetry install (dependency resolution or network issue), "
-                "attempting pipenv scan instead"
-            )
-            logger.debug(e.stderr)
-            logger.debug("--")
-            logger.debug(e.stdout)
             modes.append("pipenv")
 
     if "pipenv" in modes:

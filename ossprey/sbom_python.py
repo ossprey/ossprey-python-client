@@ -14,7 +14,7 @@ from ossbom.model.ossbom import OSSBOM
 from ossbom.model.component import Component
 
 from ossprey.virtualenv import VirtualEnv
-from ossprey.exceptions import PoetryNotFoundError, NotAPoetryProjectError
+from ossprey.exceptions import NotAPoetryProjectError
 
 logger = logging.getLogger(__name__)
 
@@ -110,66 +110,14 @@ def get_poetry_purls_from_lock(lockfile: str = "poetry.lock") -> list[PackageURL
     return purls
 
 
-def _is_poetry_project(package_dir: str) -> bool:
-    """Check if the directory contains a valid poetry project."""
-    pyproject_path = os.path.join(package_dir, "pyproject.toml")
-    if not os.path.exists(pyproject_path):
-        return False
-
-    try:
-        with open(pyproject_path, "rb") as f:
-            pyproject_data = tomllib.load(f)
-
-        # Check if poetry is the build backend
-        build_backend = pyproject_data.get("build-system", {}).get("build-backend", "")
-        if "poetry" in build_backend:
-            return True
-
-        # Also check for [tool.poetry] section which indicates a poetry project
-        if "tool" in pyproject_data and "poetry" in pyproject_data["tool"]:
-            return True
-
-        return False
-    except Exception as e:
-        logger.debug(f"Error reading pyproject.toml: {e}")
-        return False
-
-
 def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+    lock_path = os.path.join(package_dir, "poetry.lock")
+    if not os.path.exists(lock_path):
+        raise NotAPoetryProjectError(
+            f"Directory {package_dir} does not contain a poetry.lock file"
+        )
 
-    # Check if poetry is installed
-    if not shutil.which("poetry"):
-        raise PoetryNotFoundError("poetry command not found in PATH")
-
-    if not os.path.exists(os.path.join(package_dir, "poetry.lock")):
-        # Check if poetry is installed (only needed when generating poetry.lock)
-        if not shutil.which("poetry"):
-            raise PoetryNotFoundError("poetry command not found in PATH")
-        # Run poetry install to generate the poetry.lock file
-        # Note: poetry can handle both poetry-native projects and standard PEP 621 pyproject.toml
-        try:
-            subprocess.run(
-                ["poetry", "install"],
-                cwd=package_dir,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        except subprocess.CalledProcessError as e:
-            # If poetry install fails and this isn't a poetry project, raise a specific error
-            if not _is_poetry_project(package_dir):
-                raise NotAPoetryProjectError(
-                    f"Directory {package_dir} does not contain a valid poetry project "
-                    f"and poetry install failed"
-                )
-            logger.error(f"Error running poetry install: {e}")
-            logger.debug(f"stderr: {e.stderr}")
-            logger.debug(f"stdout: {e.stdout}")
-
-            raise e
-
-    # Get the packages from the poetry.lock file
-    purls = get_poetry_purls_from_lock(os.path.join(package_dir, "poetry.lock"))
+    purls = get_poetry_purls_from_lock(lock_path)
 
     ossbom.add_components(
         [

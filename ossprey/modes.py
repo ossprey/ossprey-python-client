@@ -26,6 +26,7 @@ def get_modes(directory: str) -> list[str]:
 
     poetry_files = [
         "poetry.lock",
+        # TODO: this should be seperate, pyproject.toml does not mean it's poetry
         "pyproject.toml"
     ]
     if any(poetry_file in files for poetry_file in poetry_files):
