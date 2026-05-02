@@ -3,9 +3,9 @@ import logging
 import subprocess
 import json
 import os
+import re
 import sys
 import shutil
-import tempfile
 from pathlib import Path
 import tomllib
 from packageurl import PackageURL
@@ -132,50 +132,101 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     return ossbom
 
 
-def update_sbom_from_pip_dry_run(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
-    """Resolve full dependency tree for a Python project via `pip install --dry-run --report`.
+def get_uv_binary() -> str:
+    """Return path to the uv binary.
 
-    Does not actually install or build packages with C extensions. Uses PEP 658
-    metadata where available; falls back to metadata-only sdist preparation
-    otherwise. Works with any PEP 517 build backend (poetry-core, hatchling,
-    setuptools, flit) without requiring the corresponding CLI tool.
+    uv ships as a Python wheel (declared in this package's dependencies) so it
+    lands next to the active Python in the venv's bin/. Fall back to PATH lookup
+    so users with a system-wide install also work.
     """
-    with tempfile.TemporaryDirectory(prefix="pip-dryrun-") as target_dir:
-        cmd = [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--dry-run",
-            "--ignore-installed",
-            "--no-cache-dir",
-            "--quiet",
-            "--target",
-            target_dir,
-            "--report",
-            "-",
-            package_dir,
-        ]
-        result = subprocess.run(
-            cmd,
-            check=True,
-            capture_output=True,
-            text=True,
-            env=os.environ.copy(),
+    venv_bin = Path(sys.executable).parent / "uv"
+    if venv_bin.exists():
+        return str(venv_bin)
+    if shutil.which("uv"):
+        return "uv"
+    raise FileNotFoundError("uv binary not found")
+
+
+_UV_REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")
+
+
+def _read_pyproject_root_pkg(pyproject_path: str) -> tuple[str, str] | None:
+    """Return (name, version) for the root package declared in pyproject.toml.
+
+    uv pip compile excludes the source package itself, so we add it back from
+    the manifest. Returns None if no root metadata is declared (e.g. tooling-only
+    pyproject.toml without [project] or [tool.poetry]).
+    """
+    try:
+        with open(pyproject_path, "rb") as f:
+            data = tomllib.load(f)
+    except Exception as e:
+        logger.debug(f"Could not parse pyproject.toml: {e}")
+        return None
+
+    project = data.get("project", {})
+    name = project.get("name")
+    version = project.get("version")
+
+    if not name:
+        tool_poetry = data.get("tool", {}).get("poetry", {})
+        name = tool_poetry.get("name")
+        version = version or tool_poetry.get("version")
+
+    if not name:
+        return None
+    return name.lower(), version or "0.0.0"
+
+
+def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+    """Resolve full dependency tree for a Python project via `uv pip compile --universal`.
+
+    Universal resolution captures platform-marker-conditional deps (e.g.
+    Windows-only colorama) that pip's per-environment resolver excludes.
+    Reads pyproject.toml only — does not install, build, or execute project code.
+    Works for any PEP 517 build backend (poetry-core, hatchling, setuptools, flit).
+    """
+    pyproject_path = os.path.join(package_dir, "pyproject.toml")
+    if not os.path.exists(pyproject_path):
+        raise FileNotFoundError(f"pyproject.toml not found in {package_dir}")
+
+    cmd = [
+        get_uv_binary(),
+        "pip",
+        "compile",
+        "--universal",
+        "--no-progress",
+        "--output-file",
+        "-",
+        pyproject_path,
+    ]
+    result = subprocess.run(
+        cmd,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=os.environ.copy(),
+    )
+
+    components = []
+    root = _read_pyproject_root_pkg(pyproject_path)
+    if root:
+        name, version = root
+        components.append(
+            Component.create(name=name, version=version, source="uv", type="pypi")
         )
 
-    report = json.loads(result.stdout)
-    components = [
-        Component.create(
-            name=entry["metadata"]["name"],
-            version=entry["metadata"]["version"],
-            source="pip",
-            type="pypi",
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = _UV_REQ_LINE.match(line)
+        if not match:
+            continue
+        name, version = match.group(1), match.group(2)
+        components.append(
+            Component.create(name=name.lower(), version=version, source="uv", type="pypi")
         )
-        for entry in report.get("install", [])
-        if entry.get("metadata", {}).get("name")
-        and entry.get("metadata", {}).get("version")
-    ]
     ossbom.add_components(components)
     return ossbom
 

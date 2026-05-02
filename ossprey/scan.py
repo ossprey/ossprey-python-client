@@ -15,7 +15,7 @@ from ossprey.modes import get_modes, get_all_modes
 from ossprey.sbom_python import (
     update_sbom_from_requirements,
     update_sbom_from_poetry,
-    update_sbom_from_pip_dry_run,
+    update_sbom_from_uv,
     update_sbom_from_virtualenv,
     NotAPoetryProjectError,
 )
@@ -40,16 +40,15 @@ def scan_python(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
             sbom = update_sbom_from_poetry(sbom, package_name)
         except NotAPoetryProjectError:
             logger.info(
-                "No poetry.lock found, resolving dependencies via pip --dry-run"
+                "No poetry.lock found, resolving dependencies via uv"
             )
             try:
-                sbom = update_sbom_from_pip_dry_run(sbom, package_name)
-            except CalledProcessError as e:
+                sbom = update_sbom_from_uv(sbom, package_name)
+            except (CalledProcessError, FileNotFoundError) as e:
                 logger.warning(
-                    "pip --dry-run resolution failed, falling back to pipenv"
+                    "uv resolution failed, falling back to pipenv"
                 )
-                logger.debug(f"stderr: {e.stderr}")
-                logger.debug(f"stdout: {e.stdout}")
+                logger.debug(f"error: {e}")
                 modes.append("pipenv")
 
     if "pipenv" in modes:

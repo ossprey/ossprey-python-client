@@ -13,7 +13,7 @@ from ossprey.sbom_python import (
     get_cyclonedx_binary,
     get_poetry_purls_from_lock,
     update_sbom_from_poetry,
-    update_sbom_from_pip_dry_run,
+    update_sbom_from_uv,
     update_sbom_from_virtualenv,
     NotAPoetryProjectError,
 )
@@ -92,43 +92,40 @@ def test_not_a_poetry_project_error(tmp_path):
         update_sbom_from_poetry(ossbom, str(tmp_path))
 
 
-@patch("ossprey.scan.update_sbom_from_pip_dry_run")
+@patch("ossprey.scan.update_sbom_from_uv")
 @patch("ossprey.scan.update_sbom_from_poetry")
-def test_fallback_to_pip_dry_run_on_not_a_poetry_project(
-    mock_update_poetry, mock_update_dry_run
-):
-    """Test that scan_python falls back to pip --dry-run when poetry.lock is missing."""
+def test_fallback_to_uv_on_not_a_poetry_project(mock_update_poetry, mock_update_uv):
+    """scan_python falls back to uv when poetry.lock is missing."""
     from ossprey.scan import scan_python
 
     mock_update_poetry.side_effect = NotAPoetryProjectError(
         "Directory /tmp/test_dir does not contain a poetry.lock file"
     )
 
-    mock_sbom = OSSBOM()
-    mock_update_dry_run.return_value = mock_sbom
+    mock_update_uv.return_value = OSSBOM()
 
     modes = ["poetry"]
     scan_python(modes, OSSBOM(), "/tmp/test_dir")
 
     mock_update_poetry.assert_called_once()
-    mock_update_dry_run.assert_called_once()
+    mock_update_uv.assert_called_once()
     assert "pipenv" not in modes
 
 
 @patch("ossprey.scan.update_sbom_from_virtualenv")
-@patch("ossprey.scan.update_sbom_from_pip_dry_run")
+@patch("ossprey.scan.update_sbom_from_uv")
 @patch("ossprey.scan.update_sbom_from_poetry")
-def test_fallback_to_pipenv_when_pip_dry_run_fails(
-    mock_update_poetry, mock_update_dry_run, mock_update_venv
+def test_fallback_to_pipenv_when_uv_fails(
+    mock_update_poetry, mock_update_uv, mock_update_venv
 ):
-    """If pip --dry-run also fails, scan_python falls back to pipenv."""
+    """If uv also fails, scan_python falls back to pipenv."""
     from ossprey.scan import scan_python
 
     mock_update_poetry.side_effect = NotAPoetryProjectError(
         "Directory /tmp/test_dir does not contain a poetry.lock file"
     )
-    mock_update_dry_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, cmd=["pip", "install", "--dry-run"], stderr="resolver error"
+    mock_update_uv.side_effect = subprocess.CalledProcessError(
+        returncode=1, cmd=["uv", "pip", "compile"], stderr="resolver error"
     )
     mock_update_venv.return_value = OSSBOM()
 
@@ -136,41 +133,81 @@ def test_fallback_to_pipenv_when_pip_dry_run_fails(
     scan_python(modes, OSSBOM(), "/tmp/test_dir")
 
     mock_update_poetry.assert_called_once()
-    mock_update_dry_run.assert_called_once()
+    mock_update_uv.assert_called_once()
     mock_update_venv.assert_called_once()
     assert "pipenv" in modes
 
 
-def test_update_sbom_from_pip_dry_run_parses_report():
-    """update_sbom_from_pip_dry_run resolves and parses pip's JSON report."""
-    fake_report = {
-        "version": "1",
-        "install": [
-            {"metadata": {"name": "requests", "version": "2.31.0"}},
-            {"metadata": {"name": "numpy", "version": "1.24.0"}},
-            {"metadata": {"name": "", "version": "0"}},  # filtered out
-        ],
-    }
-    completed = subprocess.CompletedProcess(
-        args=[], returncode=0, stdout=__import__("json").dumps(fake_report), stderr=""
+@patch("ossprey.scan.update_sbom_from_virtualenv")
+@patch("ossprey.scan.update_sbom_from_uv")
+@patch("ossprey.scan.update_sbom_from_poetry")
+def test_fallback_to_pipenv_when_uv_missing(
+    mock_update_poetry, mock_update_uv, mock_update_venv
+):
+    """If uv binary is missing, scan_python falls back to pipenv."""
+    from ossprey.scan import scan_python
+
+    mock_update_poetry.side_effect = NotAPoetryProjectError(
+        "Directory /tmp/test_dir does not contain a poetry.lock file"
     )
-    with patch("subprocess.run", return_value=completed):
-        ossbom = update_sbom_from_pip_dry_run(OSSBOM(), "/tmp/anything")
+    mock_update_uv.side_effect = FileNotFoundError("uv binary not found")
+    mock_update_venv.return_value = OSSBOM()
 
-    names = sorted(c.name for c in ossbom.get_components())
-    assert names == ["numpy", "requests"]
+    modes = ["poetry"]
+    scan_python(modes, OSSBOM(), "/tmp/test_dir")
+
+    mock_update_poetry.assert_called_once()
+    mock_update_uv.assert_called_once()
+    mock_update_venv.assert_called_once()
+    assert "pipenv" in modes
 
 
-def test_update_sbom_from_pip_dry_run_raises_on_pip_failure():
-    """update_sbom_from_pip_dry_run propagates CalledProcessError from pip."""
-    with patch("subprocess.run") as mock_run:
+def test_update_sbom_from_uv_parses_compile_output(tmp_path):
+    """update_sbom_from_uv parses uv pip compile output and includes the root pkg."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[project]\nname = "rootpkg"\nversion = "1.2.3"\n')
+
+    fake_stdout = (
+        "# uv compile output\n"
+        "colorama==0.4.6 ; sys_platform == 'win32'\n"
+        "    # via click\n"
+        "requests==2.31.0\n"
+        "numpy==1.24.0\n"
+    )
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout=fake_stdout, stderr=""
+    )
+    with patch("subprocess.run", return_value=completed), \
+         patch("ossprey.sbom_python.get_uv_binary", return_value="/fake/uv"):
+        ossbom = update_sbom_from_uv(OSSBOM(), str(tmp_path))
+
+    components = {c.name: c.version for c in ossbom.get_components()}
+    assert components == {
+        "rootpkg": "1.2.3",
+        "colorama": "0.4.6",
+        "numpy": "1.24.0",
+        "requests": "2.31.0",
+    }
+
+
+def test_update_sbom_from_uv_raises_on_failure(tmp_path):
+    """update_sbom_from_uv propagates CalledProcessError from uv."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[project]\nname = "x"\nversion = "0"\n')
+
+    with patch("subprocess.run") as mock_run, \
+         patch("ossprey.sbom_python.get_uv_binary", return_value="/fake/uv"):
         mock_run.side_effect = subprocess.CalledProcessError(
-            returncode=1,
-            cmd=["pip", "install", "--dry-run"],
-            stderr="resolution-impossible",
+            returncode=1, cmd=["uv", "pip", "compile"], stderr="resolution-impossible"
         )
         with pytest.raises(subprocess.CalledProcessError):
-            update_sbom_from_pip_dry_run(OSSBOM(), "/tmp/anything")
+            update_sbom_from_uv(OSSBOM(), str(tmp_path))
+
+
+def test_update_sbom_from_uv_missing_pyproject(tmp_path):
+    """update_sbom_from_uv raises FileNotFoundError when pyproject.toml is absent."""
+    with pytest.raises(FileNotFoundError, match="pyproject.toml not found"):
+        update_sbom_from_uv(OSSBOM(), str(tmp_path))
 
 
 def test_create_sbom_from_requirements_called_process_error():

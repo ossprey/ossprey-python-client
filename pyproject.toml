@@ -14,6 +14,7 @@ requests = "^2.32.3"
 pygithub = "^2.4.0"
 packageurl-python = "^0.16.0"
 ossbom = "^1.0.13"
+uv = "^0.11.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3.3,<10.0.0"
