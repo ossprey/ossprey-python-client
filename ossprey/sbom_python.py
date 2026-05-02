@@ -150,34 +150,6 @@ def get_uv_binary() -> str:
 _UV_REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")
 
 
-def _read_pyproject_root_pkg(pyproject_path: str) -> tuple[str, str] | None:
-    """Return (name, version) for the root package declared in pyproject.toml.
-
-    uv pip compile excludes the source package itself, so we add it back from
-    the manifest. Returns None if no root metadata is declared (e.g. tooling-only
-    pyproject.toml without [project] or [tool.poetry]).
-    """
-    try:
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-    except Exception as e:
-        logger.debug(f"Could not parse pyproject.toml: {e}")
-        return None
-
-    project = data.get("project", {})
-    name = project.get("name")
-    version = project.get("version")
-
-    if not name:
-        tool_poetry = data.get("tool", {}).get("poetry", {})
-        name = tool_poetry.get("name")
-        version = version or tool_poetry.get("version")
-
-    if not name:
-        return None
-    return name.lower(), version or "0.0.0"
-
-
 def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     """Resolve full dependency tree for a Python project via `uv pip compile --universal`.
 
@@ -209,13 +181,6 @@ def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     )
 
     components = []
-    root = _read_pyproject_root_pkg(pyproject_path)
-    if root:
-        name, version = root
-        components.append(
-            Component.create(name=name, version=version, source="uv", type="pypi")
-        )
-
     for line in result.stdout.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):

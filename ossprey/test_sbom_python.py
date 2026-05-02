@@ -183,7 +183,6 @@ def test_update_sbom_from_uv_parses_compile_output(tmp_path):
 
     components = {c.name: c.version for c in ossbom.get_components()}
     assert components == {
-        "rootpkg": "1.2.3",
         "colorama": "0.4.6",
         "numpy": "1.24.0",
         "requests": "2.31.0",
