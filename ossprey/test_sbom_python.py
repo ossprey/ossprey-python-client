@@ -258,12 +258,12 @@ description = "Numerical Python"
         os.unlink(lock_path)
 
 
-def test_update_sbom_from_poetry_with_existing_lock():
-    """Test that update_sbom_from_poetry reads from existing poetry.lock."""
-    ossbom = OSSBOM()
-    result = update_sbom_from_poetry(ossbom, "test/test_packages/poetry_simple_math")
+def test_update_sbom_from_poetry_raises_when_no_lock():
+    """update_sbom_from_poetry raises NotAPoetryProjectError when no poetry.lock present.
 
-    assert isinstance(result, OSSBOM)
-    names = [c.name for c in result.get_components()]
-    assert "requests" in names
-    assert "numpy" in names
+    No side effects: does not run `poetry install` to generate a lock. Caller (scan_python)
+    catches this and falls back to uv-based pyproject resolution.
+    """
+    ossbom = OSSBOM()
+    with pytest.raises(NotAPoetryProjectError, match="does not contain a poetry.lock"):
+        update_sbom_from_poetry(ossbom, "test/test_packages/poetry_simple_math")
