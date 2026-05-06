@@ -382,7 +382,8 @@ GITHUB_REPOS = [
     (
         "https://github.com/psf/requests",
         None,
-        "requests",
+        # requests itself won't appear — it's the root package; check a known dep
+        "urllib3",
     ),
 ]
 

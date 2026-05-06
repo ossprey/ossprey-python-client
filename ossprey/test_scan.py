@@ -1,11 +1,9 @@
 from __future__ import annotations
-import subprocess
 from unittest.mock import patch, MagicMock
 
 from ossprey.scan import scan, scan_python
 from ossbom.model.ossbom import OSSBOM
 from ossprey.exceptions import NoPackageManagerException
-from ossprey.sbom_python import PoetryNotFoundError, NotAPoetryProjectError
 import pytest
 
 
@@ -120,25 +118,6 @@ def test_scan_dry_run_malicious_no_components(tmp_path) -> None:
     # fs mode on empty dir yields no components
     with pytest.raises(Exception, match="No components found"):
         scan(str(tmp_path), mode="fs", local_scan="dry-run-malicious")
-
-
-def test_scan_poetry_fallback_to_pipenv_on_called_process_error() -> None:
-    """Test that scan_python falls back to pipenv when CalledProcessError is raised."""
-    mock_sbom = OSSBOM()
-    with patch("ossprey.scan.update_sbom_from_poetry") as mock_poetry, \
-         patch("ossprey.scan.update_sbom_from_virtualenv", return_value=mock_sbom) as mock_venv:
-        mock_poetry.side_effect = subprocess.CalledProcessError(
-            returncode=1,
-            cmd=["poetry", "install"],
-            output="",
-            stderr="error",
-        )
-        modes = ["poetry"]
-        result = scan_python(modes, OSSBOM(), "/tmp/test_dir")
-
-    mock_poetry.assert_called_once()
-    mock_venv.assert_called_once()
-    assert "pipenv" in modes
 
 
 def test_scan_with_ossprey_api(monkeypatch) -> None:

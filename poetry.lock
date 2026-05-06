@@ -1914,6 +1914,35 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
+name = "uv"
+version = "0.11.8"
+description = "An extremely fast Python package and project manager, written in Rust."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "uv-0.11.8-py3-none-linux_armv6l.whl", hash = "sha256:a53e704a780a9e78a50f5a880e99a690f84e6fb9e82610903ce26f47c271d74c"},
+    {file = "uv-0.11.8-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:d414fc3795b6f56fb6b1fa359537930924fdfe857750a144d2aedf3077be3f1d"},
+    {file = "uv-0.11.8-py3-none-macosx_11_0_arm64.whl", hash = "sha256:f0d402e182ab581e934c159cc9edf25ec6e08d32f29aa797980e949afefc87cd"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:877c9af3b3955a35ef739e5b2ba79c56dae5c4d50420a7ed908c0901e1c8c807"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:8278144df8d80a83f770c264a5e79ea50791316d2a0dda869e53b3c1174142a8"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:b3494ad32465f4e02259cfb104d24efe5bb8f7a782351f0354de9385415fb310"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a4421e27e81f85bce3bdb75986c38b5f9bfab9cdccaf3d977cf124b3f0f0b989"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:91943e77fc962752d4f64ad5739219858395981078051c740b28b52963b366aa"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:41fbba287efcc9bc9505a60549b3a223220da720eacd03be8c23d9daaafa44f4"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d97bb2920d6cddc07faa475013461294cc09b77ec8139278416c6e54b938d037"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:fb6a755305eb1e081dfe6a8bc007dbae2d26fe75e551656ca7c9cd08fba21d26"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_31_riscv64.musllinux_1_1_riscv64.whl", hash = "sha256:841ecbb38532698f73b14b49dc5f0c5e756194c7fcf6e5c6b7ed3859200fe91b"},
+    {file = "uv-0.11.8-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:b3ff2b20c1897105ebe7ed7f9b1b331c7171da029bc1e35970ce31dc086141c1"},
+    {file = "uv-0.11.8-py3-none-musllinux_1_1_i686.whl", hash = "sha256:ad381228b0170ef9646902c7e908d4a10a7ecc3da8139450506cf70c7e7f3e80"},
+    {file = "uv-0.11.8-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:0172b5215544844cd3db0fa3c73a2eb74999b3f00cd2527dde578725076d7b65"},
+    {file = "uv-0.11.8-py3-none-win32.whl", hash = "sha256:e71c1dd23cbb480f3952c3a95b4fd00f96bd618e2a94583fc9388c500af3070d"},
+    {file = "uv-0.11.8-py3-none-win_amd64.whl", hash = "sha256:306c624c68d95dd7ea3647675323d72c1abc25f91c3e92ae4cd6f0f11b508726"},
+    {file = "uv-0.11.8-py3-none-win_arm64.whl", hash = "sha256:a9853456696d579f206135c9dda7227a6ed8311b8a9a0b9b2008c4ae81950efe"},
+    {file = "uv-0.11.8.tar.gz", hash = "sha256:bb2cf302b8503629aab6f0090a05551e6f8cfc2d687ca059cad7ec9e11214335"},
+]
+
+[[package]]
 name = "webcolors"
 version = "25.10.0"
 description = "A library for working with the color formats defined by HTML and CSS."
@@ -1928,4 +1957,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2b855f55ae6d0639cde66e8e883550557a701f26895e2e17699915ff6996535c"
+content-hash = "c21a03a108feefdab93eb42840feffbf8fb67db43950344f4659fc5d886476a2"
