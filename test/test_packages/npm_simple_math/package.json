@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "lodash": "^4.17.21",
-    "axios": "^0.21.1"
+    "axios": "^0.31.1"
   },
   "devDependencies": {
     "jest": "^27.0.0"
