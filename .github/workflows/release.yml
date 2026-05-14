@@ -7,90 +7,38 @@ on:
         description: "Tag version (e.g., v1.0.0)"
         required: true
         type: string
-
-env:
-  TEST: 'false'
-
-permissions:
-  contents: write
+      test:
+        description: "Publish to TestPyPI instead of PyPI"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Run python-release
+        uses: ossprey/cicd/python-release@v2
         with:
-          fetch-depth: 0
-
-      - name: Validate tag format
-        run: |
-          if [[ ! "${{ github.event.inputs.tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid tag format. Use semantic versioning (e.g., v1.0.0)."
-            exit 1
-          fi
-
-      - name: Validate tag matches pyproject.toml version
-        run: |
-          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
-          EXPECTED_TAG="v$VERSION"
-          if [[ "$EXPECTED_TAG" != "${{ github.event.inputs.tag }}" ]]; then
-            echo "Tag does not match pyproject.toml version ($EXPECTED_TAG)"
-            exit 1
-          fi
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
-
-      - name: Run unit tests
-        run: |
-          poetry run pytest
+          working-directory: .
+          tag: ${{ github.event.inputs.tag }}
+          test: ${{ github.event.inputs.test }}
 
       - name: Verify package install and CLI entry point
         run: |
-          poetry build
           python -m venv /tmp/test-install
           /tmp/test-install/bin/pip install dist/ossprey-*.whl
           /tmp/test-install/bin/ossprey --help
           rm -rf /tmp/test-install
 
-      - name: Tag and push
-        if: env.TEST != 'true'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ github.event.inputs.tag }}
-          git push origin ${{ github.event.inputs.tag }}
-
-      - name: Build and Publish to PyPI
-        if: env.TEST != 'true'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          poetry build
-          poetry run twine upload dist/*
-
-      - name: Test Build and Publish to PyPI
-        if: env.TEST == 'true'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_TOKEN }}
-        run: |
-          poetry build
-          poetry run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-
   notify_on_failure:
     needs: [release]
-    if: failure() && github.ref == 'refs/heads/main'  # Only triggers if previous steps fail and we are on the main branch
+    if: failure() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
