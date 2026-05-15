@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Run python-release
-        uses: ossprey/cicd/python-release@v2
+        uses: ossprey/cicd/python-release@main
         with:
           working-directory: .
           tag: ${{ github.event.inputs.tag }}
