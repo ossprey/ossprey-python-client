@@ -70,13 +70,15 @@ runs:
 
       - name: Publish to PyPI
         if: ${{ inputs.test == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: andyantrim/gh-action-pypi-publish@e6bb70fa3edad10e8fb7e05232d86dbc7d990714
         with:
+          use-canonical-image: true
           packages-dir: ${{ inputs.working-directory }}/dist
 
       - name: Publish to TestPyPI
         if: ${{ inputs.test == 'true' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: andyantrim/gh-action-pypi-publish@e6bb70fa3edad10e8fb7e05232d86dbc7d990714
         with:
+          use-canonical-image: true
           packages-dir: ${{ inputs.working-directory }}/dist
           repository-url: https://test.pypi.org/legacy/
