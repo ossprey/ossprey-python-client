@@ -70,14 +70,14 @@ runs:
 
       - name: Publish to PyPI
         if: ${{ inputs.test == 'false' }}
-        uses: andyantrim/gh-action-pypi-publish@e6bb70fa3edad10e8fb7e05232d86dbc7d990714
+        uses: ossprey/gh-action-pypi-publish@c491490ffbff6039ce817e25d6efa3bc36e90618
         with:
           use-canonical-image: true
           packages-dir: ${{ inputs.working-directory }}/dist
 
       - name: Publish to TestPyPI
         if: ${{ inputs.test == 'true' }}
-        uses: andyantrim/gh-action-pypi-publish@e6bb70fa3edad10e8fb7e05232d86dbc7d990714
+        uses: ossprey/gh-action-pypi-publish@c491490ffbff6039ce817e25d6efa3bc36e90618
         with:
           use-canonical-image: true
           packages-dir: ${{ inputs.working-directory }}/dist
