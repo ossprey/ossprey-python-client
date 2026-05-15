@@ -22,8 +22,13 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Run python-release
-        uses: ossprey/cicd/python-release@main
+        uses: ./.github/actions/python-release
         with:
           working-directory: .
           tag: ${{ github.event.inputs.tag }}
