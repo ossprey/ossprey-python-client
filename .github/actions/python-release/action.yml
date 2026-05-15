@@ -70,13 +70,13 @@ runs:
 
       - name: Publish to PyPI
         if: ${{ inputs.test == 'false' }}
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ${{ inputs.working-directory }}/dist
 
       - name: Publish to TestPyPI
         if: ${{ inputs.test == 'true' }}
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ${{ inputs.working-directory }}/dist
           repository-url: https://test.pypi.org/legacy/
