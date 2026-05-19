@@ -41,8 +41,10 @@ def create_sbom_from_requirements(requirements_file: str) -> OSSBOM:
                 [
                     sys.executable, "-m", "pip", "install",
                     "--dry-run",
+                    "--ignore-installed",
+                    "--no-deps",
                     "--report", report_file,
-                    "--only-binary=:all:",
+                    "--prefer-binary",
                     "-r", requirements_file,
                 ],
                 check=True,
