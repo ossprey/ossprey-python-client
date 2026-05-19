@@ -313,14 +313,14 @@
     tslib "^2.3.0"
     xhr2 "^0.2.0"
 
-"@angular/platform-webworker-dynamic@^19.1.5":
+"@angular/platform-webworker-dynamic@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker-dynamic/-/platform-webworker-dynamic-10.2.5.tgz#04fc364088a3730485a89450c2eabf6a3826c120"
   integrity sha512-34ihn175vQDLyvtDHahLOHDhzTUOjetQNg+vRF5zP3q+znbfvMYzB2+UCx9cduap4Dq0F9c1RwXYThS539Jzxw==
   dependencies:
     tslib "^2.0.0"
 
-"@angular/platform-webworker@^19.1.5":
+"@angular/platform-webworker@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker/-/platform-webworker-10.2.5.tgz#f04cf5d7a3c444fffd8791fa2d0e1f3fb3bd4ab7"
   integrity sha512-pJ7o/n4/VUwDqI6NTaAkKKT7Md6BilD0aWjmiDhZrWqgz5wrlhl6II07XGIt0b1pZuwXdR6CAz6yHSB0VmnOAQ==
@@ -21128,7 +21128,7 @@ ws@8.17.1, ws@~8.17.1:
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.17.1.tgz#9293da530bb548febc95371d90f9c878727d919b"
   integrity sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==
 
-ws@8.18.0, ws@^8.17.0, ws@^8.17.1, ws@^8.18.0, ws@^8.2.3:
+ws@8.18.0:
   version "8.18.0"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.18.0.tgz#0d7505a6eafe2b0e712d232b42279f53bc289bbc"
   integrity sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==
@@ -21137,6 +21137,11 @@ ws@8.18.0, ws@^8.17.0, ws@^8.17.1, ws@^8.18.0, ws@^8.2.3:
   version "7.5.10"
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.10.tgz#58b5c20dc281633f6c19113f39b349bd8bd558d9"
   integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
+
+ws@^8.17.1, ws@^8.18.0, ws@^8.2.3, ws@^8.20.1:
+  version "8.20.1"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.20.1.tgz#91a9ae2b312ccf98e0a85ec499b48cef45ab0ddb"
+  integrity sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==
 
 xdg-basedir@^4.0.0:
   version "4.0.0"
