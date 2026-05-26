@@ -168,8 +168,6 @@ def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
         "compile",
         "--universal",
         "--no-progress",
-        "--output-file",
-        "-",
         pyproject_path,
     ]
     result = subprocess.run(
