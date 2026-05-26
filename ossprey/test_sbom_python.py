@@ -12,6 +12,7 @@ from ossprey.sbom_python import (
     create_sbom_from_requirements,
     get_cyclonedx_binary,
     get_poetry_purls_from_lock,
+    update_sbom_from_pipfile,
     update_sbom_from_poetry,
     update_sbom_from_uv,
     update_sbom_from_virtualenv,
@@ -267,3 +268,52 @@ def test_update_sbom_from_poetry_raises_when_no_lock():
     ossbom = OSSBOM()
     with pytest.raises(NotAPoetryProjectError, match="does not contain a poetry.lock"):
         update_sbom_from_poetry(ossbom, "test/test_packages/poetry_simple_math")
+
+
+def test_update_sbom_from_pipfile_lock(tmp_path):
+    """update_sbom_from_pipfile parses Pipfile.lock JSON and emits components."""
+    import json
+
+    (tmp_path / "Pipfile.lock").write_text(
+        json.dumps(
+            {
+                "_meta": {"requires": {"python_version": "3.12"}},
+                "default": {
+                    "requests": {"version": "==2.31.0", "index": "pypi"},
+                    "urllib3": {"version": "==2.1.0"},
+                },
+                "develop": {"pytest": {"version": "==7.4.4"}},
+            }
+        )
+    )
+
+    ossbom = update_sbom_from_pipfile(OSSBOM(), str(tmp_path))
+    comps = {c.name: c.version for c in ossbom.get_components()}
+    assert comps == {"requests": "2.31.0", "urllib3": "2.1.0", "pytest": "7.4.4"}
+
+
+def test_update_sbom_from_pipfile_unlocked(tmp_path):
+    """update_sbom_from_pipfile falls back to Pipfile TOML when no lock present.
+
+    Skips wildcard ("*") specifiers and table-form specifiers without a version.
+    """
+    (tmp_path / "Pipfile").write_text(
+        '[[source]]\n'
+        'url = "https://pypi.org/simple"\n'
+        'name = "pypi"\n\n'
+        '[packages]\n'
+        'requests = "==2.31.0"\n'
+        'flask = {version = "==3.0.0", extras = ["async"]}\n'
+        'wildcard = "*"\n\n'
+        '[dev-packages]\n'
+        'pytest = "==7.4.4"\n'
+    )
+
+    ossbom = update_sbom_from_pipfile(OSSBOM(), str(tmp_path))
+    comps = {c.name: c.version for c in ossbom.get_components()}
+    assert comps == {"requests": "2.31.0", "flask": "3.0.0", "pytest": "7.4.4"}
+
+
+def test_update_sbom_from_pipfile_raises_when_missing(tmp_path):
+    with pytest.raises(FileNotFoundError, match="neither Pipfile.lock nor Pipfile"):
+        update_sbom_from_pipfile(OSSBOM(), str(tmp_path))

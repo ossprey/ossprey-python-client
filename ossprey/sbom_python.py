@@ -132,6 +132,64 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     return ossbom
 
 
+def update_sbom_from_pipfile(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+    """Parse Pipfile.lock (preferred) or Pipfile and add components to the SBOM.
+
+    Pipfile.lock is JSON with `default` and `develop` dicts keyed by package
+    name; each value carries `version` like `"==1.2.3"`. The unlocked Pipfile
+    is TOML with `[packages]` / `[dev-packages]` tables; specifier values may
+    be strings ("==1.2.3", "*") or tables ({version = "==1.2.3", extras = ...}).
+    """
+    lock_path = os.path.join(package_dir, "Pipfile.lock")
+    if os.path.exists(lock_path):
+        with open(lock_path, "r") as f:
+            data = json.load(f)
+        components = []
+        for section in ("default", "develop"):
+            for name, meta in (data.get(section) or {}).items():
+                version = (meta.get("version") or "").lstrip("=").strip()
+                if not version or version == "*":
+                    continue
+                components.append(
+                    Component.create(
+                        name=name.lower(),
+                        version=version,
+                        source="Pipfile.lock",
+                        type="pypi",
+                    )
+                )
+        ossbom.add_components(components)
+        return ossbom
+
+    pipfile_path = os.path.join(package_dir, "Pipfile")
+    if not os.path.exists(pipfile_path):
+        raise FileNotFoundError(
+            f"Directory {package_dir} contains neither Pipfile.lock nor Pipfile"
+        )
+
+    with open(pipfile_path, "rb") as f:
+        pip_data = tomllib.load(f)
+
+    components = []
+    for section in ("packages", "dev-packages"):
+        for name, spec in (pip_data.get(section) or {}).items():
+            if isinstance(spec, dict):
+                spec = spec.get("version", "")
+            version = (spec or "").lstrip("=").strip()
+            if not version or version == "*":
+                continue
+            components.append(
+                Component.create(
+                    name=name.lower(),
+                    version=version,
+                    source="Pipfile",
+                    type="pypi",
+                )
+            )
+    ossbom.add_components(components)
+    return ossbom
+
+
 def get_uv_binary() -> str:
     """Return path to the uv binary.
 

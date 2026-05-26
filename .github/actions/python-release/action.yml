@@ -53,6 +53,12 @@ runs:
           poetry run pytest
         shell: bash
 
+      - name: Run smoke tests
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          poetry run pytest test/smoke -m smoke -v
+        shell: bash
+
       - name: Tag and push
         if: ${{ inputs.test == 'false' }}
         working-directory: ${{ inputs.working-directory }}

@@ -15,11 +15,16 @@ from ossprey.modes import get_modes, get_all_modes
 from ossprey.sbom_python import (
     update_sbom_from_requirements,
     update_sbom_from_poetry,
+    update_sbom_from_pipfile,
     update_sbom_from_uv,
     update_sbom_from_virtualenv,
     NotAPoetryProjectError,
 )
-from ossprey.sbom_javascript import update_sbom_from_npm, update_sbom_from_yarn
+from ossprey.sbom_javascript import (
+    update_sbom_from_npm,
+    update_sbom_from_pnpm,
+    update_sbom_from_yarn,
+)
 from ossprey.sbom_filesystem import update_sbom_from_filesystem
 from ossprey.ossprey import Ossprey
 
@@ -34,6 +39,9 @@ def scan_python(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM:
 
     if "python-requirements" in modes:
         sbom = update_sbom_from_requirements(sbom, package_name + "/requirements.txt")
+
+    if "pipfile" in modes:
+        sbom = update_sbom_from_pipfile(sbom, package_name)
 
     if "poetry" in modes:
         try:
@@ -63,6 +71,9 @@ def scan_javascript(modes: list[str], sbom: OSSBOM, package_name: str) -> OSSBOM
 
     if "yarn" in modes:
         sbom = update_sbom_from_yarn(sbom, package_name)
+
+    if "pnpm" in modes:
+        sbom = update_sbom_from_pnpm(sbom, package_name)
 
     return sbom
 

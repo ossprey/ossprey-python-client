@@ -162,42 +162,10 @@ PACKAGING_VARIANTS = [
     pytest.param("uv_simple_math", 2, id="python-uv"),
     pytest.param("hatch_simple_math", 2, id="python-hatch"),
     pytest.param("pip_tools_simple_math", 2, id="python-pip-tools"),
-    pytest.param(
-        "pipfile_simple_math",
-        2,
-        id="python-pipenv",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="Pipfile/Pipfile.lock not yet detected by get_modes — parser TODO",
-        ),
-    ),
-    pytest.param(
-        "npm_no_lock_simple_math",
-        1,
-        id="js-npm-no-lock",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="update_sbom_from_npm doesn't parse package.json deps when no lock/node_modules present — parser TODO",
-        ),
-    ),
-    pytest.param(
-        "yarn_berry_simple_math",
-        2,
-        id="js-yarn-berry",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="yarn.lock parser regex matches classic v1 format only; `yarn list` shell-out fails on berry — parser TODO",
-        ),
-    ),
-    pytest.param(
-        "pnpm_simple_math",
-        2,
-        id="js-pnpm",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="pnpm-lock.yaml not yet detected by get_modes — parser TODO",
-        ),
-    ),
+    pytest.param("pipfile_simple_math", 2, id="python-pipenv"),
+    pytest.param("npm_no_lock_simple_math", 1, id="js-npm-no-lock"),
+    pytest.param("yarn_berry_simple_math", 2, id="js-yarn-berry"),
+    pytest.param("pnpm_simple_math", 2, id="js-pnpm"),
 ]
 
 
@@ -735,15 +703,15 @@ PY_BUILDERS = [
     ("py-poetry", _build_python_poetry, False),
     ("py-uv", _build_python_uv, False),
     ("py-hatch", _build_python_hatch, False),
-    ("py-pipenv", _build_python_pipenv, True),
+    ("py-pipenv", _build_python_pipenv, False),
 ]
 
 JS_BUILDERS = [
     ("js-npm-lock", _build_js_npm_lock, False),
-    ("js-npm-manifest-only", _build_js_npm_manifest_only, True),
+    ("js-npm-manifest-only", _build_js_npm_manifest_only, False),
     ("js-yarn-classic", _build_js_yarn_classic, False),
-    ("js-yarn-berry", _build_js_yarn_berry, True),
-    ("js-pnpm", _build_js_pnpm, True),
+    ("js-yarn-berry", _build_js_yarn_berry, False),
+    ("js-pnpm", _build_js_pnpm, False),
 ]
 
 # Real packages — pinned versions known to resolve on PyPI / npm.
