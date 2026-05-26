@@ -190,6 +190,39 @@ def test_update_sbom_from_uv_parses_compile_output(tmp_path):
     }
 
 
+def test_update_sbom_from_uv_prefers_uv_export_when_lock_present(tmp_path):
+    """When uv.lock is present, update_sbom_from_uv runs `uv export`, not `uv pip compile`."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[project]\nname = "rootpkg"\nversion = "1.2.3"\n')
+    (tmp_path / "uv.lock").write_text("# stub lock\n")
+
+    fake_stdout = (
+        "-e .\n"
+        "colorama==0.4.6\n"
+        "    # via pytest\n"
+        "exceptiongroup==1.3.1 ; python_full_version < '3.11'\n"
+        "    # via pytest\n"
+        "pytest==7.4.4\n"
+    )
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout=fake_stdout, stderr=""
+    )
+    with patch("subprocess.run", return_value=completed) as mock_run, \
+         patch("ossprey.sbom_python.get_uv_binary", return_value="/fake/uv"):
+        ossbom = update_sbom_from_uv(OSSBOM(), str(tmp_path))
+
+    called_cmd = mock_run.call_args.args[0]
+    assert called_cmd[1] == "export", f"expected uv export, got: {called_cmd}"
+    assert "--no-emit-project" in called_cmd
+
+    components = {c.name: c.version for c in ossbom.get_components()}
+    assert components == {
+        "colorama": "0.4.6",
+        "exceptiongroup": "1.3.1",
+        "pytest": "7.4.4",
+    }
+
+
 def test_update_sbom_from_uv_raises_on_failure(tmp_path):
     """update_sbom_from_uv propagates CalledProcessError from uv."""
     pyproject = tmp_path / "pyproject.toml"

@@ -209,25 +209,48 @@ _UV_REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")
 
 
 def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
-    """Resolve full dependency tree for a Python project via `uv pip compile --universal`.
+    """Resolve full dependency tree for a Python project via uv.
 
-    Universal resolution captures platform-marker-conditional deps (e.g.
-    Windows-only colorama) that pip's per-environment resolver excludes.
-    Reads pyproject.toml only — does not install, build, or execute project code.
+    Prefers `uv export` when a `uv.lock` is present (full locked tree incl.
+    transitives across all dependency groups). Falls back to `uv pip compile
+    --universal` against `pyproject.toml` otherwise — captures
+    platform-marker-conditional deps (e.g. Windows-only colorama) that pip's
+    per-environment resolver excludes.
+
+    Reads project metadata only — does not install, build, or execute project code.
     Works for any PEP 517 build backend (poetry-core, hatchling, setuptools, flit).
     """
     pyproject_path = os.path.join(package_dir, "pyproject.toml")
     if not os.path.exists(pyproject_path):
         raise FileNotFoundError(f"pyproject.toml not found in {package_dir}")
 
-    cmd = [
-        get_uv_binary(),
-        "pip",
-        "compile",
-        "--universal",
-        "--no-progress",
-        pyproject_path,
-    ]
+    lock_path = os.path.join(package_dir, "uv.lock")
+    uv = get_uv_binary()
+    if os.path.exists(lock_path):
+        cmd = [
+            uv,
+            "export",
+            "--directory",
+            package_dir,
+            "--format",
+            "requirements.txt",
+            "--no-header",
+            "--no-hashes",
+            "--no-emit-project",
+            "--no-progress",
+        ]
+        source = "uv.lock"
+    else:
+        cmd = [
+            uv,
+            "pip",
+            "compile",
+            "--universal",
+            "--no-progress",
+            pyproject_path,
+        ]
+        source = "uv"
+
     result = subprocess.run(
         cmd,
         check=True,
@@ -246,7 +269,7 @@ def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
             continue
         name, version = match.group(1), match.group(2)
         components.append(
-            Component.create(name=name.lower(), version=version, source="uv", type="pypi")
+            Component.create(name=name.lower(), version=version, source=source, type="pypi")
         )
     ossbom.add_components(components)
     return ossbom
