@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ossprey"
-version = "1.1.8"
+version = "1.2.0"
 description = "Ossprey tooling to scan your software package, create an SBOM and then submit it to our service for malware scanning"
 authors = ["dreadn0ught"]
 license = "GPL-3.0"
@@ -29,7 +29,16 @@ ossprey = "ossprey.main:main"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pytest.ini_options]
+markers = [
+  "smoke: end-to-end CLI smoke tests",
+  "slow: long-running tests (installs packages)",
+  "network: tests that require network access",
+]
+addopts = "-m 'not smoke'"
+
 [tool.taskipy.tasks]
 test = "poetry run pytest"
+smoke = "poetry run pytest test/smoke -m smoke -v"
 deploy = "poetry build && twine upload dist/*"
 deploy-test = "poetry build && twine upload --repository-url https://test.pypi.org/legacy/ dist/*"

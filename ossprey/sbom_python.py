@@ -132,6 +132,64 @@ def update_sbom_from_poetry(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
     return ossbom
 
 
+def update_sbom_from_pipfile(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
+    """Parse Pipfile.lock (preferred) or Pipfile and add components to the SBOM.
+
+    Pipfile.lock is JSON with `default` and `develop` dicts keyed by package
+    name; each value carries `version` like `"==1.2.3"`. The unlocked Pipfile
+    is TOML with `[packages]` / `[dev-packages]` tables; specifier values may
+    be strings ("==1.2.3", "*") or tables ({version = "==1.2.3", extras = ...}).
+    """
+    lock_path = os.path.join(package_dir, "Pipfile.lock")
+    if os.path.exists(lock_path):
+        with open(lock_path, "r") as f:
+            data = json.load(f)
+        components = []
+        for section in ("default", "develop"):
+            for name, meta in (data.get(section) or {}).items():
+                version = (meta.get("version") or "").lstrip("=").strip()
+                if not version or version == "*":
+                    continue
+                components.append(
+                    Component.create(
+                        name=name.lower(),
+                        version=version,
+                        source="Pipfile.lock",
+                        type="pypi",
+                    )
+                )
+        ossbom.add_components(components)
+        return ossbom
+
+    pipfile_path = os.path.join(package_dir, "Pipfile")
+    if not os.path.exists(pipfile_path):
+        raise FileNotFoundError(
+            f"Directory {package_dir} contains neither Pipfile.lock nor Pipfile"
+        )
+
+    with open(pipfile_path, "rb") as f:
+        pip_data = tomllib.load(f)
+
+    components = []
+    for section in ("packages", "dev-packages"):
+        for name, spec in (pip_data.get(section) or {}).items():
+            if isinstance(spec, dict):
+                spec = spec.get("version", "")
+            version = (spec or "").lstrip("=").strip()
+            if not version or version == "*":
+                continue
+            components.append(
+                Component.create(
+                    name=name.lower(),
+                    version=version,
+                    source="Pipfile",
+                    type="pypi",
+                )
+            )
+    ossbom.add_components(components)
+    return ossbom
+
+
 def get_uv_binary() -> str:
     """Return path to the uv binary.
 
@@ -151,27 +209,48 @@ _UV_REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)")
 
 
 def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
-    """Resolve full dependency tree for a Python project via `uv pip compile --universal`.
+    """Resolve full dependency tree for a Python project via uv.
 
-    Universal resolution captures platform-marker-conditional deps (e.g.
-    Windows-only colorama) that pip's per-environment resolver excludes.
-    Reads pyproject.toml only — does not install, build, or execute project code.
+    Prefers `uv export` when a `uv.lock` is present (full locked tree incl.
+    transitives across all dependency groups). Falls back to `uv pip compile
+    --universal` against `pyproject.toml` otherwise — captures
+    platform-marker-conditional deps (e.g. Windows-only colorama) that pip's
+    per-environment resolver excludes.
+
+    Reads project metadata only — does not install, build, or execute project code.
     Works for any PEP 517 build backend (poetry-core, hatchling, setuptools, flit).
     """
     pyproject_path = os.path.join(package_dir, "pyproject.toml")
     if not os.path.exists(pyproject_path):
         raise FileNotFoundError(f"pyproject.toml not found in {package_dir}")
 
-    cmd = [
-        get_uv_binary(),
-        "pip",
-        "compile",
-        "--universal",
-        "--no-progress",
-        "--output-file",
-        "-",
-        pyproject_path,
-    ]
+    lock_path = os.path.join(package_dir, "uv.lock")
+    uv = get_uv_binary()
+    if os.path.exists(lock_path):
+        cmd = [
+            uv,
+            "export",
+            "--directory",
+            package_dir,
+            "--format",
+            "requirements.txt",
+            "--no-header",
+            "--no-hashes",
+            "--no-emit-project",
+            "--no-progress",
+        ]
+        source = "uv.lock"
+    else:
+        cmd = [
+            uv,
+            "pip",
+            "compile",
+            "--universal",
+            "--no-progress",
+            pyproject_path,
+        ]
+        source = "uv"
+
     result = subprocess.run(
         cmd,
         check=True,
@@ -190,7 +269,7 @@ def update_sbom_from_uv(ossbom: OSSBOM, package_dir: str) -> OSSBOM:
             continue
         name, version = match.group(1), match.group(2)
         components.append(
-            Component.create(name=name.lower(), version=version, source="uv", type="pypi")
+            Component.create(name=name.lower(), version=version, source=source, type="pypi")
         )
     ossbom.add_components(components)
     return ossbom

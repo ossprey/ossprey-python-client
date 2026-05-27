@@ -13,6 +13,8 @@ from ossprey.sbom_javascript import (
     get_all_package_lock_packages,
     package_json_file_exists,
     get_all_package_json_packages,
+    pnpm_lock_file_exists,
+    get_all_pnpm_lock_packages,
     run_npm_dry_run,
     get_all_npm_dry_run_packages,
     yarn_lock_file_exists,
@@ -20,6 +22,7 @@ from ossprey.sbom_javascript import (
     run_yarn_install,
     get_all_yarn_list_packages,
     update_sbom_from_npm,
+    update_sbom_from_pnpm,
     update_sbom_from_yarn,
 )
 
@@ -97,12 +100,24 @@ def test_package_json_file_exists(tmp_path: Path) -> None:
 
 def test_get_all_package_json_packages(tmp_path: Path) -> None:
     (tmp_path / "package.json").write_text(
-        '{"dependencies": {"testpkg": "1.0.0"}, "devDependencies": {"testpkg-dev": "1.0.0"}}'
+        '{"dependencies": {"testpkg": "^1.0.0", "tagpkg": "latest"},'
+        ' "devDependencies": {"testpkg-dev": "~2.3.4"}}'
     )
-    assert get_all_package_json_packages(tmp_path) == [
-        {"name": "testpkg", "version": "1.0.0"},
-        {"name": "testpkg-dev", "version": "1.0.0"},
-    ]
+    components = get_all_package_json_packages(tmp_path)
+    by_name = {c.name: c for c in components}
+
+    # Range prefixes stripped; ``latest`` tag skipped (no concrete version).
+    assert set(by_name) == {"testpkg", "testpkg-dev"}
+    assert by_name["testpkg"].version == "1.0.0"
+    assert by_name["testpkg-dev"].version == "2.3.4"
+    assert all(c.type == "npm" for c in components)
+    assert all(c.source == {"package.json"} for c in components)
+
+
+def test_get_all_package_json_packages_missing_sections(tmp_path: Path) -> None:
+    """Missing dependencies/devDependencies keys must not raise."""
+    (tmp_path / "package.json").write_text("{}")
+    assert get_all_package_json_packages(tmp_path) == []
 
 
 def test_run_npm_dry_run() -> None:
@@ -126,6 +141,63 @@ def test_get_all_yarn_lock_packages(tmp_path: Path) -> None:
     assert isinstance(c, Component)
     assert c.name == "testpkg"
     assert c.version == "1.0.0"
+
+
+def test_pnpm_lock_file_exists(tmp_path: Path) -> None:
+    assert pnpm_lock_file_exists(tmp_path) is False
+    (tmp_path / "pnpm-lock.yaml").write_text("")
+    assert pnpm_lock_file_exists(tmp_path) is True
+
+
+def test_get_all_pnpm_lock_packages_v6(tmp_path: Path) -> None:
+    """pnpm v6 entries use ``/name@version:`` keys; trailing ``(peer)`` stripped."""
+    (tmp_path / "pnpm-lock.yaml").write_text(
+        "lockfileVersion: '6.0'\n\n"
+        "packages:\n\n"
+        "  /lodash@4.17.21:\n"
+        "    resolution: {integrity: sha512-x}\n"
+        "    dev: false\n\n"
+        "  /@scope/pkg@2.0.0(react@18.2.0):\n"
+        "    resolution: {integrity: sha512-y}\n"
+    )
+    comps = {c.name: c.version for c in get_all_pnpm_lock_packages(tmp_path)}
+    assert comps == {"lodash": "4.17.21", "@scope/pkg": "2.0.0"}
+
+
+def test_get_all_pnpm_lock_packages_v9(tmp_path: Path) -> None:
+    """pnpm v9 drops the leading slash on package keys."""
+    (tmp_path / "pnpm-lock.yaml").write_text(
+        "lockfileVersion: '9.0'\n\n"
+        "packages:\n\n"
+        "  axios@1.6.5:\n"
+        "    resolution: {integrity: sha512-z}\n"
+    )
+    comps = {c.name: c.version for c in get_all_pnpm_lock_packages(tmp_path)}
+    assert comps == {"axios": "1.6.5"}
+
+
+def test_get_all_yarn_lock_packages_berry(tmp_path: Path) -> None:
+    """Berry-format lockfile (v2+) is detected via ``__metadata`` and parsed."""
+    (tmp_path / "yarn.lock").write_text(
+        '# yarn lockfile\n\n'
+        '__metadata:\n'
+        '  version: 6\n'
+        '  cacheKey: 10c0\n\n'
+        '"lodash@npm:4.17.21":\n'
+        '  version: 4.17.21\n'
+        '  resolution: "lodash@npm:4.17.21"\n'
+        '  languageName: node\n'
+        '  linkType: hard\n\n'
+        '"@scope/pkg@npm:2.0.0":\n'
+        '  version: 2.0.0\n'
+        '  resolution: "@scope/pkg@npm:2.0.0"\n\n'
+        '"my-app@workspace:.":\n'
+        '  version: 0.0.0-use.local\n'
+        '  resolution: "my-app@workspace:."\n'
+    )
+    comps = {c.name: c.version for c in get_all_yarn_lock_packages(tmp_path)}
+    # Workspace self-entry skipped, scoped name preserved.
+    assert comps == {"lodash": "4.17.21", "@scope/pkg": "2.0.0"}
 
 
 def test_run_yarn_install() -> None:

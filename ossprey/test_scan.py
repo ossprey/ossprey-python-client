@@ -63,8 +63,13 @@ def test_scan_npm_success(mode: str) -> None:
     assert len(ret.get_components()) == 322
 
 
-@pytest.mark.parametrize(["mode", "num_components"], [("yarn", 323), ("auto", 323)])
+@pytest.mark.parametrize(["mode", "num_components"], [("yarn", 323), ("auto", 325)])
 def test_scan_yarn_success(mode: str, num_components: int) -> None:
+    """yarn fixture has package.json + yarn.lock (no lockfile or node_modules
+    on the npm side). In ``auto`` mode the npm scanner now falls back to
+    package.json and contributes a couple of extra components on top of the
+    yarn.lock parse; ``yarn`` mode alone is unchanged.
+    """
     ret = scan("test/test_packages/yarn_simple_math", mode=mode, local_scan=True)
     assert isinstance(ret, OSSBOM)
     assert len(ret.get_components()) == num_components

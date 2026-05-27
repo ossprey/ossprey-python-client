@@ -12,6 +12,7 @@ from ossprey.sbom_python import (
     create_sbom_from_requirements,
     get_cyclonedx_binary,
     get_poetry_purls_from_lock,
+    update_sbom_from_pipfile,
     update_sbom_from_poetry,
     update_sbom_from_uv,
     update_sbom_from_virtualenv,
@@ -189,6 +190,39 @@ def test_update_sbom_from_uv_parses_compile_output(tmp_path):
     }
 
 
+def test_update_sbom_from_uv_prefers_uv_export_when_lock_present(tmp_path):
+    """When uv.lock is present, update_sbom_from_uv runs `uv export`, not `uv pip compile`."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_bytes(b'[project]\nname = "rootpkg"\nversion = "1.2.3"\n')
+    (tmp_path / "uv.lock").write_text("# stub lock\n")
+
+    fake_stdout = (
+        "-e .\n"
+        "colorama==0.4.6\n"
+        "    # via pytest\n"
+        "exceptiongroup==1.3.1 ; python_full_version < '3.11'\n"
+        "    # via pytest\n"
+        "pytest==7.4.4\n"
+    )
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout=fake_stdout, stderr=""
+    )
+    with patch("subprocess.run", return_value=completed) as mock_run, \
+         patch("ossprey.sbom_python.get_uv_binary", return_value="/fake/uv"):
+        ossbom = update_sbom_from_uv(OSSBOM(), str(tmp_path))
+
+    called_cmd = mock_run.call_args.args[0]
+    assert called_cmd[1] == "export", f"expected uv export, got: {called_cmd}"
+    assert "--no-emit-project" in called_cmd
+
+    components = {c.name: c.version for c in ossbom.get_components()}
+    assert components == {
+        "colorama": "0.4.6",
+        "exceptiongroup": "1.3.1",
+        "pytest": "7.4.4",
+    }
+
+
 def test_update_sbom_from_uv_raises_on_failure(tmp_path):
     """update_sbom_from_uv propagates CalledProcessError from uv."""
     pyproject = tmp_path / "pyproject.toml"
@@ -267,3 +301,52 @@ def test_update_sbom_from_poetry_raises_when_no_lock():
     ossbom = OSSBOM()
     with pytest.raises(NotAPoetryProjectError, match="does not contain a poetry.lock"):
         update_sbom_from_poetry(ossbom, "test/test_packages/poetry_simple_math")
+
+
+def test_update_sbom_from_pipfile_lock(tmp_path):
+    """update_sbom_from_pipfile parses Pipfile.lock JSON and emits components."""
+    import json
+
+    (tmp_path / "Pipfile.lock").write_text(
+        json.dumps(
+            {
+                "_meta": {"requires": {"python_version": "3.12"}},
+                "default": {
+                    "requests": {"version": "==2.31.0", "index": "pypi"},
+                    "urllib3": {"version": "==2.1.0"},
+                },
+                "develop": {"pytest": {"version": "==7.4.4"}},
+            }
+        )
+    )
+
+    ossbom = update_sbom_from_pipfile(OSSBOM(), str(tmp_path))
+    comps = {c.name: c.version for c in ossbom.get_components()}
+    assert comps == {"requests": "2.31.0", "urllib3": "2.1.0", "pytest": "7.4.4"}
+
+
+def test_update_sbom_from_pipfile_unlocked(tmp_path):
+    """update_sbom_from_pipfile falls back to Pipfile TOML when no lock present.
+
+    Skips wildcard ("*") specifiers and table-form specifiers without a version.
+    """
+    (tmp_path / "Pipfile").write_text(
+        '[[source]]\n'
+        'url = "https://pypi.org/simple"\n'
+        'name = "pypi"\n\n'
+        '[packages]\n'
+        'requests = "==2.31.0"\n'
+        'flask = {version = "==3.0.0", extras = ["async"]}\n'
+        'wildcard = "*"\n\n'
+        '[dev-packages]\n'
+        'pytest = "==7.4.4"\n'
+    )
+
+    ossbom = update_sbom_from_pipfile(OSSBOM(), str(tmp_path))
+    comps = {c.name: c.version for c in ossbom.get_components()}
+    assert comps == {"requests": "2.31.0", "flask": "3.0.0", "pytest": "7.4.4"}
+
+
+def test_update_sbom_from_pipfile_raises_when_missing(tmp_path):
+    with pytest.raises(FileNotFoundError, match="neither Pipfile.lock nor Pipfile"):
+        update_sbom_from_pipfile(OSSBOM(), str(tmp_path))
