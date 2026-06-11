@@ -313,14 +313,14 @@
     tslib "^2.3.0"
     xhr2 "^0.2.0"
 
-"@angular/platform-webworker-dynamic@^19.1.5":
+"@angular/platform-webworker-dynamic@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker-dynamic/-/platform-webworker-dynamic-10.2.5.tgz#04fc364088a3730485a89450c2eabf6a3826c120"
   integrity sha512-34ihn175vQDLyvtDHahLOHDhzTUOjetQNg+vRF5zP3q+znbfvMYzB2+UCx9cduap4Dq0F9c1RwXYThS539Jzxw==
   dependencies:
     tslib "^2.0.0"
 
-"@angular/platform-webworker@^19.1.5":
+"@angular/platform-webworker@^10.2.5":
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/platform-webworker/-/platform-webworker-10.2.5.tgz#f04cf5d7a3c444fffd8791fa2d0e1f3fb3bd4ab7"
   integrity sha512-pJ7o/n4/VUwDqI6NTaAkKKT7Md6BilD0aWjmiDhZrWqgz5wrlhl6II07XGIt0b1pZuwXdR6CAz6yHSB0VmnOAQ==
@@ -2313,9 +2313,9 @@
   integrity sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==
 
 "@grpc/grpc-js@~1.9.0":
-  version "1.9.15"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.9.15.tgz#433d7ac19b1754af690ea650ab72190bd700739b"
-  integrity sha512-nqE7Hc0AzI+euzUwDAy0aY5hCp10r734gMGRdU+qOPX0XSceI2ULrcXB5U2xSc5VkWwalCj4M7GzCAygZl2KoQ==
+  version "1.9.16"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.9.16.tgz#614f85036ac8e3c957374c1bd1ebb05934a79a1c"
+  integrity sha512-wE4Ut/olIzfKqp631XrG+wbF0v1vWFN4YL9FyXC2LJiG33DsV7PLzURjrCvY/6je2ntdRkeLpPDluzSRGaVltQ==
   dependencies:
     "@grpc/proto-loader" "^0.7.8"
     "@types/node" ">=12.12.47"
